@@ -23,18 +23,23 @@ cache_all <- read_rds("~/westcoast-networks/data/Simulation/ASC_Calibration_Regi
 # )
 
 # run conditions 3
+# runconditions <- tibble(
+#   entry_opt = c("portion","sluggish","random","portion","sluggish","random"),
+#   dropves = c(F,F,F,T,T,T)
+# )
+
+# run conditions 3 extended
 runconditions <- tibble(
-  entry_opt = c("portion","sluggish","random","portion","sluggish","random"),
-  dropves = c(F,F,F,T,T,T)
+  entry_opt = c("flat","portion","sluggish","random")
 )
 
 costbyfishery <- T
-closureresponse <- T
+closureresponse <- F
 subgraph_use <- "Meta"
 shockpermanent <- F
 scalerand <- T
 skillrand <- T
-entry_opt <- "flat"
+entry_opt <- "portion"
 dropves <- F
 
 # entry_opt <- c("portion", "sluggish", "random")
@@ -42,37 +47,39 @@ dropves <- F
 # dropves <- F
 
 # >> only run once <<
-# base_name <- "~/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_"
+base_name <- "~/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_"
 # numbers <- 1:nrow(runconditions)
 # for (i in numbers) {
 #   dir.create(file.path(paste0(base_name, i)))
 # }
+dir.create(file.path(paste0(base_name, 9)))
 log_dir <- "/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_Logs/"
 # dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
 
 # Loop Outer --------------------------------------------------------------
 
-j <- 7
+j <- 2
 # nyears <- 8
 # burnin <- 5
-for(j in 1:nrow(runconditions)){
+for(j in 2:nrow(runconditions)){
 
   print(j)
-  # entry_opt <- runconditions$entry_opt[[j]]
-  entry_opt <- "flat"
+  jsave <- j+6
+  entry_opt <- runconditions$entry_opt[[j]]
+  # entry_opt <- "flat"
   # dropves <- runconditions$dropves[[j]]
   dropves <- F
 
-  log_file <- file.path(log_dir, sprintf("worker_%02d.log", j))
+  log_file <- file.path(log_dir, sprintf("worker_%02d.log", jsave))
   if (file.exists(log_file)) file.remove(log_file)
-  write(sprintf("=== Starting worker j = %d at %s ===\n", j, Sys.time()),
+  write(sprintf("=== Starting worker j = %d at %s ===\n", jsave, Sys.time()),
         file = log_file, append = TRUE)
 
   currentlf <- as.numeric(
     str_extract_all(
       list.files(
-        paste0("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_",j,"/"))
+        paste0("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_",jsave,"/"))
       ,"[0-9]+"))
   setwrite <- setdiff(1:500,currentlf)
 
@@ -129,9 +136,9 @@ for(j in 1:nrow(runconditions)){
         vessels_in <- round(runif(1,125,425))
       }
 
-      if(closureresponse == T){
-        vessels_in <- round(runif(1,125,425))
-      }
+      # if(closureresponse == T){
+      #   vessels_in <- round(runif(1,125,425))
+      # }
       ds <- NA
       if(dropves == T){
         ds <- runif(1,.5,1)
@@ -158,6 +165,7 @@ for(j in 1:nrow(runconditions)){
                                     scale_t1ev, asc_sc, asc_fc, drop,
                                     skillrand, costbyfishery, shockpermanent,
                                     distparameter, closureresponse, entry, dropves, ds)
+
         # s - Sys.time()
 
         # log finish
@@ -191,7 +199,7 @@ for(j in 1:nrow(runconditions)){
                          rscales = rscales)
 
       write_rds(cache_iter,
-                paste0("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_",j,"/",
+                paste0("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_",jsave,"/",
                        subgraph_use,"_",s,".rds"))
 
       # return(list(sim_run = sim_run,

@@ -83,7 +83,7 @@ graph_ext_fcn_ves <- function(df_choice, fisherylist_use, vessel_pairs, yi, drop
     urf <- mean(E(gy)$weight) + var(E(gy)$weight)/mean(E(gy)$weight)
 
     # SI <- sparsityindex(ey, nlinks = nfisheries, nnodes = nrow(vy), F)
-    df_sub <- bind_rows(cache_dfchoice[10:14]) %>%
+    df_sub <- df_choice %>%
       filter(Vessel_ID %in% vy$Vessel_ID)
     nf <- n_distinct(df_sub$FISHERY_ID)
     esi <- ey %>%
@@ -206,7 +206,7 @@ graph_fuller_fcn_ves <- function(df_choice, yi, fisherylist_use, drop){
 
     # SI <- sparsityindex(ey, nlinks = nfisheries,
     #                     nnodes = nrow(vy), F)
-    df_sub <- bind_rows(cache_dfchoice[10:14]) %>%
+    df_sub <- df_choice %>%
       filter(Vessel_ID %in% vy$Vessel_ID)
     nf <- n_distinct(df_sub$FISHERY_ID)
     esi <- ey %>%

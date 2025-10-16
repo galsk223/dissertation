@@ -1,5 +1,5 @@
 rm(list = ls())
-source("01_scripts/01_Choices_Function_MetaExpansion.R")
+source("/home/gkoss/dissertation/01_scripts/01_Choices_Function_MetaExpansion.R")
 library(furrr)
 # library(foreach)
 # library(doParallel)
@@ -9,8 +9,8 @@ year_ref <- 2017
 scale_t1ev <- 1000
 nyears <- 40
 burnin <- 14
-e17 <- read_rds("westcoast-networks/data/Simulation/ASC_Calibration_Regional/Eureka_2017_fuller.rds")
-cache_all <- read_rds("~/westcoast-networks/data/Simulation/ASC_Calibration_RegionalMeta.rds")
+e17 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/ASC_Calibration_Regional/Eureka_2017_fuller.rds")
+cache_all <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/ASC_Calibration_RegionalMeta.rds")
 
 # run conditions 1 and 2
 # runconditions <- tibble(
@@ -47,22 +47,22 @@ dropves <- F
 # dropves <- F
 
 # >> only run once <<
-base_name <- "~/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_"
+# base_name <- "/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_"
 # numbers <- 1:nrow(runconditions)
 # for (i in numbers) {
-#   dir.create(file.path(paste0(base_name, i)))
+#   dir.create(file.path(paste0(base_name, 10)))
 # }
-dir.create(file.path(paste0(base_name, 9)))
+# dir.create(file.path(paste0(base_name, 10)))
 log_dir <- "/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta2_Logs/"
 # dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
 
 # Loop Outer --------------------------------------------------------------
 
-j <- 2
+j <- 3
 # nyears <- 8
 # burnin <- 5
-for(j in 2:nrow(runconditions)){
+for(j in 3:nrow(runconditions)){
 
   print(j)
   jsave <- j+6
@@ -88,7 +88,7 @@ for(j in 2:nrow(runconditions)){
   }
 # Bootstrap (Inner) -------------------------------------------------------
 
-  s <- 1
+  s <- setwrite[[1]]
   # plan(sequential)
     plan(multisession, workers = 6)
     # # options(future.rng.onMisuse="ignore")
@@ -164,7 +164,7 @@ for(j in 2:nrow(runconditions)){
         sim_run <- choices_asc_meta(start, subgraph_use, year_ref, nyears, vessels_in, burnin,
                                     scale_t1ev, asc_sc, asc_fc, drop,
                                     skillrand, costbyfishery, shockpermanent,
-                                    distparameter, closureresponse, entry, dropves, ds)
+                                    distparameter, closureresponse, entry_opt, dropves, ds)
 
         # s - Sys.time()
 
@@ -217,9 +217,9 @@ for(j in 2:nrow(runconditions)){
         file = log_file, append = TRUE)
 }
 
-
-t <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta1_4/Meta_99.rds")
-t2 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta1_6/Meta_1.rds")
+#
+# t <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta1_4/Meta_99.rds")
+# t2 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/DynamicSimulationOutcomes/MLSizeCacheMeta1_6/Meta_1.rds")
 # t2e <- t2$sim_run$cache_ttran[[1]]
 # te <- t$sim_run$cache_e[[1]]
 #

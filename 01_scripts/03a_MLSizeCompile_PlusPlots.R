@@ -12,7 +12,10 @@ allfolders <- list(fl1 = list.files(paste0(base_name, fileid, 1, "/"), full.name
                    fl4 = list.files(paste0(base_name, fileid, 4, "/"), full.names = T),
                    fl5 = list.files(paste0(base_name, fileid, 5, "/"), full.names = T),
                    fl6 = list.files(paste0(base_name, fileid, 6, "/"), full.names = T),
-                   fl7 = list.files(paste0(base_name, fileid, 7, "/"), full.names = T))
+                   fl7 = list.files(paste0(base_name, fileid, 7, "/"), full.names = T),
+                   fl8 = list.files(paste0(base_name, fileid, 8, "/"), full.names = T),
+                   fl9 = list.files(paste0(base_name, fileid, 9, "/"), full.names = T),
+                   fl10 = list.files(paste0(base_name, fileid, 10, "/"), full.names = T))
 
 # functions ---------------------------------------------------------------
 
@@ -90,7 +93,7 @@ dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
 # loop  -------------------------------------------------------------------
 
-f <- 7
+f <- 8
 c <- 4
 
 for (f in 1:length(allfolders)){
@@ -216,9 +219,9 @@ for (f in 1:length(allfolders)){
 
     end <- vessels_time %>%
       filter(Year >= 16) %>%
-      mutate(SS_Vessels = rollmean(NVessels, k = 5, fill = NA, align = "right"),
-             SS_Revenue = rollmean(MeanRevenue, k = 5, fill = NA, align = "right"),
-             SS_Weeks = rollmean(MeanWeeks, k = 5, fill = NA, align = "right"),
+      mutate(SS_Vessels = rollmean(NVessels, k = 3, fill = NA, align = "right"),
+             SS_Revenue = rollmean(MeanRevenue, k = 3, fill = NA, align = "right"),
+             SS_Weeks = rollmean(MeanWeeks, k = 3, fill = NA, align = "right"),
              SS_Vessels_Pre = steadystate_pre$SS_Vessels,
              Return = ifelse(SS_Vessels >= SS_Vessels_Pre, 1, 0)) %>%
       dplyr::slice_tail(n = 1)
@@ -370,158 +373,6 @@ for (f in 1:length(allfolders)){
   write_rds(allout, outfile)
 
 }
-
-t <- df_net %>%
-  mutate(Recover = ifelse(Return < 25, "Recovered", "New Steady State"),
-         RecoverI = ifelse(Return < 25, 1, 0),
-         Vessel1N = Vessels1*SS_Vessels,
-         VesselDrop = SS_Vessels-Vessel1N) %>%
-  distinct(SS_Vessels, SS_Fisheries, N_Fisheries, Vessels1, Vessels5, Vessels10, VesselDrop, Return, iter) %>%
-  mutate(YearPVesLost = Return/VesselDrop) %>%
-  filter(YearPVesLost > 0,
-         YearPVesLost < quantile(YearPVesLost,.975))
-
-f <- fixest::feols(t, Return ~ SS_Vessels*SS_Fisheries)
-f
-b0 <- 2.7364
-b1 <- -0.018443
-b2 <- -0.108538
-b3 <- 0.000509
-
-fl <- fixest::feols(t, YearPVesLost ~ SS_Vessels*N_Fisheries)
-fl
-b0 <- 4.3362
-b1 <- -0.018443
-b2 <- -0.108538
-b3 <- 0.000509
-
-t_gridplot <- expand_grid(SS_Vessels = seq(30,330,1),
-                          SS_Fisheries = seq(8,48,1)) %>%
-  mutate(YearPVesLost = b0 + b1 * SS_Vessels + b2 * SS_Fisheries + b3 * SS_Vessels * SS_Fisheries) %>%
-  filter(YearPVesLost >= 0)
-
-ggplot(t, aes(x = SS_Vessels, y = SS_Fisheries,
-              size = Return)) +
-  geom_point(alpha = .7) +
-  labs(title = "Speed of Recovery per Exited Vessel",
-       subtitle = "Years for the simulation to retrn to its pre-shock fleet size
-       per vessel that exited during the shock",
-       x = "Fleet Size (pre-shock)",
-       y = "# Fisheries (pre-shock)") +
-  ggthemes::theme_tufte()
-
-ggplot(t, aes(x = SS_Vessels, y = SS_Fisheries,
-              size = YearPVesLost)) +
-  geom_contour_filled(
-    data = t_gridplot,
-    aes(x = SS_Vessels, y = SS_Fisheries, z = YearPVesLost),
-    alpha = .5,
-    # color = "grey50",
-    size = 0.6
-    # bins = 12
-  ) +
-  geom_point(alpha = .7) +
-  scale_fill_viridis_d(option = "magma", direction = -1) +
-  labs(title = "Speed of Recovery per Exited Vessel",
-       subtitle = "Years for the simulation to retrn to its pre-shock fleet size
-       per vessel that exited during the shock",
-       x = "Fleet Size (pre-shock)",
-       y = "# Fisheries (pre-shock)",
-       fill = "Fitted \nYears / ExitedVessel",
-       size = "Years / ExitedVessel") +
-  ggthemes::theme_tufte()
-
-i <-
-sv <- seq(30,330,20)
-nf <- seq(0,50,2)
-t_grid <- expand_grid(SS_Vessels = sv,
-                      N_Fisheries = nf)
-
-ranges <- map_dfr(1:(nrow(t_grid)-length(nf)-1), function(i){
-
-  s1 <- t_grid$SS_Vessels[[i]]
-  s2 <- t_grid$SS_Vessels[[i+length(nf)+1]]
-  f1 <- t_grid$N_Fisheries[[i]]
-  f2 <- t_grid$N_Fisheries[[i+length(nf)+1]]
-
-  tsquare <- t %>%
-    filter(SS_Vessels > s1,
-           SS_Vessels < s2,
-           SS_Fisheries > f1,
-           SS_Fisheries < f2)
-
-  if(nrow(tsquare) == 0){return(NULL)}
-
-  out <- tibble(SS_Min = s1,
-                SS_Max = s2,
-                NF_Min = f1,
-                NF_Max = f2,
-                Obs = nrow(tsquare),
-                ShockMagnitude = max(tsquare$VesselDrop)-min(tsquare$VesselDrop),
-                ReturnRange = max(tsquare$Return)-min(tsquare$Return),
-                SpeedRange = max(tsquare$YearPVesLost)-min(tsquare$YearPVesLost))
-
-})
-
-ggplot(ranges) +
-  geom_rect(aes(xmin = SS_Min,xmax = SS_Max, ymin = NF_Min,ymax = NF_Max,
-                fill = Obs),
-            color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#AAFAC8", high = "#2D728B") +
-  labs(
-    x = "Number of vessels",
-    y = "Number of fisheries",
-    subtitle = "Observations",
-    fill = "# Simulations"
-  ) +
-  ggthemes::theme_tufte() +
-  theme(panel.border = element_blank(),
-        axis.ticks = element_blank())
-
-ggplot(ranges) +
-  geom_rect(aes(xmin = SS_Min,xmax = SS_Max, ymin = NF_Min,ymax = NF_Max,
-                fill = ShockMagnitude),
-            color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#AAFAC8", high = "#2D728B") +
-  labs(
-    x = "Number of vessels",
-    y = "Number of fisheries",
-    subtitle = "Shock Magnitude",
-    fill = "# Vessels"
-  ) +
-  ggthemes::theme_tufte() +
-  theme(panel.border = element_blank(),
-        axis.ticks = element_blank())
-
-ggplot(ranges) +
-  geom_rect(aes(xmin = SS_Min,xmax = SS_Max, ymin = NF_Min,ymax = NF_Max,
-      fill = ReturnRange),
-    color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#AAFAC8", high = "#2D728B") +
-  labs(
-    x = "Number of vessels",
-    y = "Number of fisheries",
-    subtitle = "Shock Duration",
-    fill = "Years"
-  ) +
-  ggthemes::theme_tufte() +
-  theme(panel.border = element_blank(),
-        axis.ticks = element_blank())
-
-ggplot(ranges) +
-  geom_rect(aes(xmin = SS_Min,xmax = SS_Max, ymin = NF_Min,ymax = NF_Max,
-                fill = SpeedRange),
-            color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#AAFAC8", high = "#2D728B") +
-  labs(
-    x = "Number of vessels",
-    y = "Number of fisheries",
-    subtitle = "Recovery Speed",
-    fill = "Years per Vessel Exited"
-  ) +
-  ggthemes::theme_tufte() +
-  theme(panel.border = element_blank(),
-        axis.ticks = element_blank())
 
 
 

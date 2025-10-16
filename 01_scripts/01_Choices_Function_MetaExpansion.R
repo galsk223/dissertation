@@ -9,53 +9,53 @@ library(bipartite)
 library(tnet)
 library(statnet)
 
-list.files("01_scripts/01_Choice_Function_Functions/",
+list.files("/home/gkoss/dissertation/01_scripts/01_Choice_Function_Functions/",
            full.names = TRUE) %>%
   walk(source)
 
-startreg <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchmarks_region.rds")
-startmet <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchmarks_meta.rds")
+startreg <- read_rds("/home/gkoss/westcoast-networks/data/clean/Simulation/empiricalbenchmarks_region.rds")
+startmet <- read_rds("/home/gkoss/westcoast-networks/data/clean/Simulation/empiricalbenchmarks_meta.rds")
 
-year_ref <- 2017
-vessels_in <- 350
-scale_t1ev <- 500
-# nyears <- 10
-# burnin <- 5
-distparameter <- .5
-skillrand <- T
-scalerand <- T
-costbyfishery <- T
-shockpermanent <- F
-closureresponse <- F
-entry_opt <- c("portion", "sluggish", "random")
-entry <- entry_opt[[3]]
-entry <- "flat"
-dropves <- F
-cmtiming <- 2
-
-subgraph_uses <- c("Meta","Region")
-subgraph_use <- subgraph_uses[[1]]
+# year_ref <- 2017
+# vessels_in <- 350
+# scale_t1ev <- 500
+# # nyears <- 10
+# # burnin <- 5
+# distparameter <- .5
+# skillrand <- T
+# scalerand <- T
+# costbyfishery <- T
+# shockpermanent <- F
+# closureresponse <- F
+# entry_opt <- c("portion", "sluggish", "random")
+# entry <- entry_opt[[3]]
+# entry <- "flat"
+# dropves <- F
+# cmtiming <- 2
+#
+# subgraph_uses <- c("Meta","Region")
+# subgraph_use <- subgraph_uses[[1]]
 # subgraph_use <- subgraph_uses[[2]]
 
-if(subgraph_use == "Region"){
-  e17 <- read_rds("westcoast-networks/data/Simulation/ASC_Calibration_Regional/Eureka_2017_fuller.rds")
-  asc_fc_reg <- e17$cache_fc[,ncol(e17$cache_fc)]
-  asc_sc_reg <- e17$cache_sc[,ncol(e17$cache_sc)]
-  start <- startreg
-  asc_sc <- asc_sc_reg
-  asc_fc <- asc_fc_reg
-  drop <- "CA Dungeness Crab"
-} else {
-  cache_all <- read_rds("~/westcoast-networks/data/Simulation/ASC_Calibration_RegionalMeta.rds")
-  asc_sc_met <- cache_all$cache_sc[,5]*2
-  asc_fc_met <- cache_all$cache_fc[,5]*2
-  start <- startmet
-  asc_sc <- asc_sc_met
-  asc_fc <- asc_fc_met
-  fisherylistuse <- unique(startmet$df_exprev$RegionFishery)
-  drop <- fisherylistuse[str_detect(fisherylistuse, "Dungeness Crab")]
-  distparameter <- 2
-}
+# if(subgraph_use == "Region"){
+#   e17 <- read_rds("westcoast-networks/data/Simulation/ASC_Calibration_Regional/Eureka_2017_fuller.rds")
+#   asc_fc_reg <- e17$cache_fc[,ncol(e17$cache_fc)]
+#   asc_sc_reg <- e17$cache_sc[,ncol(e17$cache_sc)]
+#   start <- startreg
+#   asc_sc <- asc_sc_reg
+#   asc_fc <- asc_fc_reg
+#   drop <- "CA Dungeness Crab"
+# } else {
+#   cache_all <- read_rds("~/westcoast-networks/data/Simulation/ASC_Calibration_RegionalMeta.rds")
+#   asc_sc_met <- cache_all$cache_sc[,5]*2
+#   asc_fc_met <- cache_all$cache_fc[,5]*2
+#   start <- startmet
+#   asc_sc <- asc_sc_met
+#   asc_fc <- asc_fc_met
+#   fisherylistuse <- unique(startmet$df_exprev$RegionFishery)
+#   drop <- fisherylistuse[str_detect(fisherylistuse, "Dungeness Crab")]
+#   distparameter <- 2
+# }
 
 choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, burnin,
                             scale_t1ev, asc_sc, asc_fc, drop,
@@ -331,7 +331,6 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
     df_choice <- df_choice_fcn(yc$choice, yc$revenue, cost_multiplier, v_set)
     # cache_fishing[[yi+1]] <- fishing_fcn(df_choice, yi)
 
-
 # Year Loops; Cache -------------------------------------------------------
 
     fished_mask <- yc$choice != "Not Fishing" & !is.na(yc$choice)
@@ -347,12 +346,19 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
       mutate(Year = yi)
 
     cache_dfchoice[[yi]] <- df_choice_fcn(yc$choice, yc$revenue, cost_multiplier, v_set)
+    write_rds(list(cache_dfchoice = cache_dfchoice,
+                   yi = yi,
+                   fisherylist_use = fisherylist_use,
+                   drop = drop), "/home/gkoss/westcoast-networks/data/choicetempcache.rds")
 
     largestcc <- T
     if(yi == burnin){
       cache_ttran[[yi+1-burnin]] <- graph_time_trans(cache_dfchoice, burnin, yi, nvessels, largestcc)
       cache_tcor[[yi+1-burnin]] <- graph_time_corr(cache_dfchoice, yi, nvessels, largestcc)
+
+      # print("caches time")
     }
+
 
     if(yi == (burnin) |
        yi == (burnin+1)){
@@ -360,7 +366,11 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
       cache_e[[yi+1-burnin]] <- graph_ext_fcn(cache_dfchoice[[yi]], fishery_pairs, fisherylist_use, yi, largestcc)
       cache_f[[yi+1-burnin]] <- graph_fuller_fcn(cache_dfchoice[[yi]], yi, fisherylist_use, largestcc)
 
+      # print("caches fish")
+
       cache_b[[yi+1-burnin]] <- graph_bip_fcn(cache_dfchoice[[yi]], yi, nfisheries)
+
+      # print("caches b")
 
       vessel_pairs <- expand.grid(Vessel1 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)),
                                   Vessel2 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)), stringsAsFactors = FALSE) %>%
@@ -369,7 +379,11 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
 
       cache_e_v[[yi+1-burnin]] <- graph_ext_fcn_ves(cache_dfchoice[[yi]], fisherylist_use, vessel_pairs, yi, drop)
       cache_f_v[[yi+1-burnin]] <- graph_fuller_fcn_ves(cache_dfchoice[[yi]], yi, fisherylist_use, drop)
+
+      # print("caches ves")
     }
+
+
 
 
 # Year Loops; Next Year Prep ----------------------------------------------

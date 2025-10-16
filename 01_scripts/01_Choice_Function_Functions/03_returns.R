@@ -398,7 +398,7 @@ graph_bip_fcn <- function(df_choice, yi, nfisheries){
       DF <- fragmentation_bipartite(affiliation.mat)
 
       bars <- tibble(Year = yi,
-                     Componenet = i,
+                     Componenet = c,
                     Fishery = names(strength),
                     Size = size$NWeeks,
                     Closeness = closeness,

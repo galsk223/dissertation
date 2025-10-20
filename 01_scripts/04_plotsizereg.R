@@ -1,3 +1,10 @@
+df_sim <- read_rds(paste0("/home/gkoss/westcoast-networks/data/clean/Simulation/projectiondataforML_",fileid,8,".rds"))
+nstart <- map_dfr(df_sim[[1]], function(i){i$network_pre_f})
+# %>%
+#   group_by(iter) %>%
+#   mutate(Cluster = pmax(Cluster)) %>%
+  # distinct(iter, .keep_all = T)
+
 nsmall <- nstart %>%
   filter(SS_Vessels > 100,
          SS_Vessels < 170) %>%
@@ -58,8 +65,8 @@ ntogether <- nstart %>%
   mutate(Vessel1N = Vessels1*SS_Vessels,
          VesselDrop = SS_Vessels-Vessel1N,
          YearPVesLost = Return/VesselDrop,
-         MedianToCentroid = ifelse(HullArea == 0, 0, MedianToCentroid),
-         MeanToCentroid = ifelse(HullArea == 0, 0, MeanToCentroid),
+         # MedianToCentroid = ifelse(HullArea == 0, 0, MedianToCentroid),
+         # MeanToCentroid = ifelse(HullArea == 0, 0, MeanToCentroid),
          Big = ifelse(SS_Fisheries > 26,1,0),
          SizeClass = case_when(SS_Vessels > 100 &
                                  SS_Vessels < 170 ~ 1,
@@ -72,7 +79,7 @@ ntogether <- nstart %>%
   filter(!is.na(Mean_Weight),
          !is.na(SizeClass),
          !is.na(SI),
-         !is.na(HullArea),
+         # !is.na(HullArea),
          !is.na(Modularity),
          !is.na(SS_Vessels),
          !is.na(SS_Fisheries))
@@ -87,34 +94,35 @@ nsecond <- ntogether  %>%
 f2 <- feols(Return ~ Fitted, nsecond)
 f2
 
-fc <- feols(YearPVesLost ~  SS_Vessels*(SizeClass + Mean_Weight + HullArea + Modularity + SS_Fisheries), ntogether)
-fc <- feols(YearPVesLost ~  SS_Fisheries*(SizeClass + Mean_Weight + HullArea + Modularity + SS_Vessels), ntogether)
-fc
+fc <- feols(YearPVesLost ~  SS_Vessels*(SizeClass + Mean_Weight + Modularity + HullArea + SS_Fisheries), ntogether)
+# fc <- feols(YearPVesLost ~  SS_Fisheries*(SizeClass + Mean_Weight + HullArea + Modularity + SS_Vessels), ntogether)
+summary(fc)
 
-summary(lm(fitted(f2) ~ fitted(fc)))
+# summary(lm(fitted(f2) ~ fitted(fc)))
 
 gridw <- expand.grid(
-  # SS_Vessels = seq(min(ntogether$SS_Vessels, na.rm = TRUE),
-  #                 max(ntogether$SS_Vessels, na.rm = TRUE), length.out = 50),
-  SS_Fisheries = seq(min(ntogether$SS_Fisheries, na.rm = TRUE),
-                   max(ntogether$SS_Fisheries, na.rm = TRUE), length.out = 50),
+  SS_Vessels = seq(min(ntogether$SS_Vessels, na.rm = TRUE),
+                  max(ntogether$SS_Vessels, na.rm = TRUE), length.out = 50),
+  # SS_Fisheries = seq(min(ntogether$SS_Fisheries, na.rm = TRUE),
+  #                  max(ntogether$SS_Fisheries, na.rm = TRUE), length.out = 50),
   Mean_Weight = seq(min(ntogether$Mean_Weight, na.rm = TRUE),
                     max(ntogether$Mean_Weight, na.rm = TRUE), length.out = 50)
 )
 
 gridw$SI <- mean(ntogether$SI, na.rm = TRUE)
 gridw$HullArea <- mean(ntogether$HullArea, na.rm = TRUE)
+gridw$N_Edges <- mean(ntogether$N_Edges, na.rm = TRUE)
 gridw$Modularity <- mean(ntogether$Modularity, na.rm = TRUE)
 gridw$SizeClass <- mean(ntogether$SizeClass, na.rm = TRUE)
-# gridw$SS_Fisheries <- mean(ntogether$SS_Fisheries, na.rm = TRUE)
-gridw$SS_Vessels <- mean(ntogether$SS_Vessels, na.rm = TRUE)
+gridw$SS_Fisheries <- mean(ntogether$SS_Fisheries, na.rm = TRUE)
+# gridw$SS_Vessels <- mean(ntogether$SS_Vessels, na.rm = TRUE)
 
 # Predict from your model
 gridw$Pred <- predict(fc, newdata = gridw)
 
 # Plot
 ggplot(gridw %>%
-         filter(Pred > 0), aes(x = Mean_Weight, y = SS_Fisheries)) +
+         filter(Pred > 0), aes(x = Mean_Weight, y = SS_Vessels)) +
   geom_tile(aes(fill = Pred)) +
   geom_contour(aes(z = Pred), color = "grey60", alpha = 0.5) +
   scale_fill_viridis_c(name = "Predicted\nYears Per Vessel Lost", option = "magma", direction = -1) +
@@ -127,26 +135,27 @@ ggplot(gridw %>%
   ggthemes::theme_tufte()
 
 grid <- expand.grid(
-  # SS_Vessels = seq(min(ntogether$SS_Vessels, na.rm = TRUE),
-  #                 max(ntogether$SS_Vessels, na.rm = TRUE), length.out = 50),
-  SS_Fisheries = seq(min(ntogether$SS_Fisheries, na.rm = TRUE),
-                     max(ntogether$SS_Fisheries, na.rm = TRUE), length.out = 50),
+  SS_Vessels = seq(min(ntogether$SS_Vessels, na.rm = TRUE),
+                  max(ntogether$SS_Vessels, na.rm = TRUE), length.out = 50),
+  # SS_Fisheries = seq(min(ntogether$SS_Fisheries, na.rm = TRUE),
+  #                    max(ntogether$SS_Fisheries, na.rm = TRUE), length.out = 50),
   Modularity = seq(min(ntogether$Modularity, na.rm = TRUE),
                     max(ntogether$Modularity, na.rm = TRUE), length.out = 50)
 )
 
+grid$N_Edges <- mean(ntogether$N_Edges, na.rm = TRUE)
 grid$SI <- mean(ntogether$SI, na.rm = TRUE)
 grid$HullArea <- mean(ntogether$HullArea, na.rm = TRUE)
 grid$Mean_Weight <- mean(ntogether$Mean_Weight, na.rm = TRUE)
 grid$SizeClass <- mean(ntogether$SizeClass, na.rm = TRUE)
-grid$SS_Vessels <- mean(ntogether$SS_Vessels, na.rm = TRUE)
+grid$SS_Fisheries <- mean(ntogether$SS_Fisheries, na.rm = TRUE)
 
 # Predict from your model
 grid$Pred <- predict(fc, newdata = grid)
 
 # Plot
 ggplot(grid %>%
-         filter(Pred > 0), aes(x = Modularity, y = SS_Fisheries)) +
+         filter(Pred > 0), aes(x = Modularity, y = SS_Vessels)) +
   geom_tile(aes(fill = Pred)) +
   geom_contour(aes(z = Pred), color = "grey60", alpha = 0.5) +
   scale_fill_viridis_c(name = "Predicted\nYears Per Vessel Lost", option = "magma", direction = -1) +
@@ -154,7 +163,7 @@ ggplot(grid %>%
     x = "Modularity",
     y = "Fleet Size",
     title = "Years Per Vessel Lost",
-    subtitle = "Modularity (Fuller Projection)"
+    subtitle = "Modularity (Transition Projection)"
   ) +
   ggthemes::theme_tufte()
 

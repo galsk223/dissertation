@@ -10,69 +10,78 @@ i <- 2
 intersect <- F
 
 dfbind <- function(df, pindex, meta, n, bigi, intersect){
-  
+
   pname <- names(df[[1]])
-  
+
   allproj <- map(pindex, function(p){
-    
+
     # batch_results <- map(batches, function(bidx){
-    # 
-    df_out <- 
+    #
+    df_out <-
       suppressMessages(
         map(1:n, function(i){
           print(paste(bigi, pname[p],i))
-          
+
           x <- df[[i]][[p]]
           if(is.null(x) ||
              nrow(x)<=1){
             return(NULL)
           }
-          
-          temp1 <- as_tibble(x) 
+
+          temp1 <- as_tibble(x)
           # %>%
           #   drop_na()
-          
+
           if(str_detect(pname[p],"v")){
-            temp <- temp1 %>% 
-              group_by(Component) %>% 
-              mutate(MeanStrength = mean(Strength)) %>% 
-              ungroup() %>% 
-              distinct(across(-c(3:7,15))) %>% 
-              select(-any_of("Cluster")) 
+            temp <- temp1 %>%
+              group_by(Component) %>%
+              mutate(MeanStrength = mean(Strength)) %>%
+              ungroup() %>%
+              distinct(across(-c(3:7,15))) %>%
+              select(-any_of("Cluster")) %>%
+              mutate(Vessel1N = Vessels1*SS_Vessels,
+                     VesselDrop = SS_Vessels-Vessel1N,
+                     YearPVesLost = Return/VesselDrop)
             # print(unique(temp$Component))
           } else if(meta == F){
-            temp <- temp1 %>% 
-              select(-any_of("Cluster")) %>% 
-              filter(Fishery == Drop) 
+            temp <- temp1 %>%
+              select(-any_of("Cluster")) %>%
+              filter(Fishery == Drop) %>%
+              mutate(Vessel1N = Vessels1*SS_Vessels,
+                     VesselDrop = SS_Vessels-Vessel1N,
+                     YearPVesLost = Return/VesselDrop)
           } else {
-            temp <- temp1 %>% 
-              select(-any_of("Cluster")) %>% 
-              filter(map2_lgl(Fishery, Drop, ~ .x %in% .y)) 
+            temp <- temp1 %>%
+              select(-any_of("Cluster")) %>%
+              filter(map2_lgl(Fishery, Drop, ~ .x %in% .y)) %>%
+              mutate(Vessel1N = Vessels1*SS_Vessels,
+                     VesselDrop = SS_Vessels-Vessel1N,
+                     YearPVesLost = Return/VesselDrop)
           }
-          
-          
-          
-        }) %>% 
-          compact() %>% 
+
+
+
+
+        }) %>%
+          compact() %>%
           bind_rows()
       )
-    
+
   })
-  
+
   if(intersect == T){
     # get only the iter columns for all non-null dfs
-    iter_lists <- map(allproj, ~ if(!is.null(.x)){ .x$iter} else {NULL} ) 
+    iter_lists <- map(allproj, ~ if(!is.null(.x)){ .x$iter} else {NULL} )
     iter_lists <- compact(iter_lists)  # remove NULLs
-    
+
     # find intersection of iterations across all p
     all_iters <- reduce(iter_lists, intersect)
     allproj <- map(allproj, ~ filter(.x, iter %in% all_iters))
   }
-  
+
   names(allproj) <- pname[pindex]
-  
+
   return(allproj)
-  
+
 }
 
-dfmedplus <- function()

@@ -96,7 +96,7 @@ dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 f <- 8
 c <- 4
 
-for (f in 1:length(allfolders)){
+for (f in 7:length(allfolders)){
 
   folder <- allfolders[[f]]
 

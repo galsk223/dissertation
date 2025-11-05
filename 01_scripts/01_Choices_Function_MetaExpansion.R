@@ -58,7 +58,7 @@ startmet <- read_rds("/home/gkoss/westcoast-networks/data/clean/Simulation/empir
 # }
 
 choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, burnin,
-                            scale_t1ev, asc_sc, asc_fc, drop,
+                            scale_t1ev, asc_sc, asc_fc, fisherylistin, drop,
                             skillrand, costbyfishery, shockpermanent,
                             distparameter, closureresponse, entry, dropves, ds){
 
@@ -291,6 +291,16 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
         arrange(Vessel_ID)
     }
 
+    if(nyears == 1){
+      fisherylist_use <- fisherylistin
+      nfisheries <- length(fisherylist_use)
+      fishery_pairs <- expand.grid(Fishery1 = fisherylist_use,
+                                   Fishery2 = fisherylist_use,
+                                   stringsAsFactors = FALSE) %>%
+        filter(Fishery1 != Fishery2) %>%
+        arrange(Fishery1, Fishery2)
+    }
+
       set.seed(Sys.time())
       if(subgraph_use == "Region"){
 
@@ -352,13 +362,12 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
                    drop = drop), "/home/gkoss/westcoast-networks/data/choicetempcache.rds")
 
     largestcc <- T
-    if(yi == burnin){
+    if(yi == burnin & nyears > 5){
       cache_ttran[[yi+1-burnin]] <- graph_time_trans(cache_dfchoice, burnin, yi, nvessels, largestcc)
       cache_tcor[[yi+1-burnin]] <- graph_time_corr(cache_dfchoice, yi, nvessels, largestcc)
 
       # print("caches time")
     }
-
 
     if(yi == (burnin) |
        yi == (burnin+1)){
@@ -372,14 +381,16 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
 
       # print("caches b")
 
-      vessel_pairs <- expand.grid(Vessel1 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)),
-                                  Vessel2 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)), stringsAsFactors = FALSE) %>%
-        filter(Vessel1 != Vessel2) %>%
-        arrange(Vessel1, Vessel2)
+      if(nyears > 5){
+        vessel_pairs <- expand.grid(Vessel1 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)),
+                                    Vessel2 = as.character(unique(cache_dfchoice[[yi]]$Vessel_ID)), stringsAsFactors = FALSE) %>%
+          filter(Vessel1 != Vessel2) %>%
+          arrange(Vessel1, Vessel2)
 
-      cache_e_v[[yi+1-burnin]] <- graph_ext_fcn_ves(cache_dfchoice[[yi]], fisherylist_use, vessel_pairs, yi, drop)
-      cache_f_v[[yi+1-burnin]] <- graph_fuller_fcn_ves(cache_dfchoice[[yi]], yi, fisherylist_use, drop)
+        cache_e_v[[yi+1-burnin]] <- graph_ext_fcn_ves(cache_dfchoice[[yi]], fisherylist_use, vessel_pairs, yi, drop)
+        cache_f_v[[yi+1-burnin]] <- graph_fuller_fcn_ves(cache_dfchoice[[yi]], yi, fisherylist_use, drop)
 
+      }
       # print("caches ves")
     }
 

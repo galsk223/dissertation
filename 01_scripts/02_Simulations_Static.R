@@ -81,12 +81,12 @@ log_dir <- "/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutco
 
 # Bootstrap (Inner) -------------------------------------------------------
 
-jall <- c("scalar", "kk", "knk", "nknk",
+jall <- c("scalar", "sc", "kk", "knk", "nknk",
           "kk1", "kk2",
           "knk1", "knk2",
           "nknk1", "nknk2")
 
-j <- 1
+j <- 2
 for(j in 4:10){
 
   log_file <- file.path(log_dir, sprintf("worker_%02d.log", j))
@@ -113,6 +113,11 @@ for(j in 4:10){
       rscalef <- runif(1,1,3)
       asc_fc <- asc_fc_start*rscalef
       rscales <- runif(1,1,3)
+      asc_sc <- asc_sc_start*rscales
+    }
+
+    if(jall[[j]] == "sc"){
+      rscales <- runif(1,1,5)
       asc_sc <- asc_sc_start*rscales
     }
 
@@ -185,7 +190,17 @@ for(j in 4:10){
 
 }
 
+s1 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar.rds")
+s2 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar_2.rds")
+si <- s2[[1]]
+sreiter <- map(s2, function(si){
 
+  sout <- si$sim_id %>%
+    mutate(iter = iter+100)
+  sall <- list(sim_run = sim_run,
+               sim_id = sout)
 
-
-
+})
+s <- c(s1,sreiter)
+write_rds(s,
+          paste0("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar500.rds"))

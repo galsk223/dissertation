@@ -10,6 +10,14 @@ cache_all <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/ASC_Calibr
 asc_sc_start <- cache_all$cache_sc[,5]
 asc_fc_start <- cache_all$cache_fc[,5]
 fisherynet <- read_rds("~/westcoast-networks/data/clean/Simulation/topregionfisherylist.rds")
+smaller <- c("Pacific Halibut H&L, Central Coast", "Pacific Halibut H&L, San Francisco",
+             "CA Southern Rock Crab, Central Coast", "OA Fed Non-Trawl Groundfish, Bodega",
+             "OA Fed Non-Trawl Groundfish, Central Coast", "CA Salmon, Bodega",
+             "CA Salmon, San Francisco",
+             # "CA Dungeness Crab, Central Coast",
+             "LE/IFQ Trawl Groundfish Non-Whiting, North", "LE Fixed Primary Sablefish, Bodega",
+             "CA Rockfish, Central Coast", "CA Dungeness Crab, Bodega")
+
 fisherylistin <- fisherynet$FISHERY_ID
 start <- startmet
 vessels_in <- 320
@@ -17,7 +25,7 @@ subgraph_use <- "Meta"
 skillrand <- F
 dropves <- F
 costbyfishery <- F
-entry_opt <- "portion"
+entry_opt <- entry <- "portion"
 drop <- NA
 ds <- NA
 shockpermanent <- F
@@ -81,13 +89,19 @@ log_dir <- "/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutco
 
 # Bootstrap (Inner) -------------------------------------------------------
 
-jall <- c("scalar", "sc", "kk", "knk", "nknk",
+jall <- c("scalar", "sc",
+          "fc","fc1","fc2",
+          "kk", "knk", "nknk",
           "kk1", "kk2",
           "knk1", "knk2",
-          "nknk1", "nknk2")
+          "nknk1", "nknk2", "smaller")
+addl <- 1
+# addl 2 for 1-5 x 300
+# fix closeness?
 
-j <- 2
-for(j in 4:10){
+j <- 3
+s <- 1
+for(j in 2:9){
 
   log_file <- file.path(log_dir, sprintf("worker_%02d.log", j))
   if (file.exists(log_file)) file.remove(log_file)
@@ -95,7 +109,7 @@ for(j in 4:10){
         file = log_file, append = TRUE)
 
   plan(sequential)
-  plan(multisession, workers = 16)
+  plan(multisession, workers = 32)
   cache_simulation_par <- furrr::future_map(1:100,function(s){
 
     # cache_iter <- list()
@@ -105,22 +119,39 @@ for(j in 4:10){
 
     cat(paste("\n Bootstrap", s,"\n"))
 
-    set.seed(s)
+    set.seed(addl*100+s)
+    fisherylistin <- fisherynet$FISHERY_ID
     rscalef <- 1
     asc_fc <- asc_fc_start
 
-    if(jall[[j]] == "scalar"){
+    if(jall[[j]] %in% c("scalar","smaller")){
       rscalef <- runif(1,1,3)
       asc_fc <- asc_fc_start*rscalef
       rscales <- runif(1,1,3)
       asc_sc <- asc_sc_start*rscales
     }
 
-    if(jall[[j]] == "sc"){
-      rscales <- runif(1,1,5)
+    if(jall[[j]] == "smaller"){
+      fisherylistin <- smaller
+      rscalef <- runif(1,.1,2)
+      asc_fc <- asc_fc_start*rscalef
+      rscales <- runif(1,.1,2)
       asc_sc <- asc_sc_start*rscales
     }
 
+    if(jall[[j]] == "sc"){
+      rscales <- runif(1,0,1)
+      asc_sc <- asc_sc_start*rscales
+    }
+    if(jall[[j]] == "fc"){
+      rscalef <- runif(1,1,3)
+      asc_fc <- asc_fc_start*rscalef
+    }
+
+    if(str_detect(jall[[j]],"fc")){
+      rscales <- 1
+      asc_sc <- asc_sc_start*rscales
+    }
     if(str_detect(jall[[j]],"1")){
       rscalef <- runif(1,1,3)
       asc_fc <- asc_fc_start
@@ -133,19 +164,19 @@ for(j in 4:10){
 
     if(str_detect(jall[[j]],"kk")) {
 
-      rscales <- runif(1,1,5)
+      rscales <- runif(1,0,1)
       asc_sc <- asc_sc_start
       asc_sc[as.numeric(scindex$rowname[scindex$KeyKey == 1])] <- asc_sc[as.numeric(scindex$rowname[scindex$KeyKey == 1])]*rscales
 
     } else if(str_detect(jall[[j]],"knk")) {
 
-      rscales <- runif(1,1,5)
+      rscales <- runif(1,0,1)
       asc_sc <- asc_sc_start
       asc_sc[as.numeric(scindex$rowname[scindex$KeyNotKey == 1])] <- asc_sc[as.numeric(scindex$rowname[scindex$KeyNotKey == 1])]*rscales
 
     } else if(str_detect(jall[[j]],"nknk")) {
 
-      rscales <- runif(1,1,5)
+      rscales <- runif(1,0,1)
       asc_sc <- asc_sc_start
       asc_sc[as.numeric(scindex$rowname[scindex$NotKeyNotKey == 1])] <- asc_sc[as.numeric(scindex$rowname[scindex$NotKeyNotKey == 1])]*rscales
 
@@ -183,7 +214,8 @@ for(j in 4:10){
   })
 
   write_rds(cache_simulation_par,
-            paste0("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustment",jall[[j]],".rds"))
+            paste0("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustment",
+                   jall[[j]],"_",addl,".rds"))
 
   plan(sequential)
   gc()

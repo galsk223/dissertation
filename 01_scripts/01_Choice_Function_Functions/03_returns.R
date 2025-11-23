@@ -112,6 +112,8 @@ graph_ext_fcn <- function(df_choice, fishery_pairs, fisherylist_use, yi, largest
   # SI <- sparsityindex(ey, nlinks = nvessels, nnodes = nrow(vy), F)
   p <- vy$UniqueVessels/sum(vy$UniqueVessels)
   H <- -sum(p * log(p))
+  pe <- esi$weight/sum(esi$weight)
+  He <- -sum(pe * log(pe))
   DF <- fragmentation(Ainv)
 
   # node level
@@ -121,7 +123,10 @@ graph_ext_fcn <- function(df_choice, fishery_pairs, fisherylist_use, yi, largest
     fc <- 0
   }
 
+  # E(g)$inv_weight <- 1 / E(g)$weight
+  # closeness(g, weights = E(g)$inv_weight)
   closeness <- igraph::closeness(gy)
+
   strength <- igraph::strength(gy)
 
   embstats <- fleet_summary_emb_safe(gy, .01)

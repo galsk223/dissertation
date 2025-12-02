@@ -36,12 +36,12 @@ jall <- c("scalar", "sc",
           "knk1", "knk2",
           "nknk1", "nknk2", "smaller")
 
-j <- 3
-f <- 1
+j <- 1
+f <- 2
 c <- 1
-for (j in 2:8){
+for (j in 1:5){
 
-  jfiles <- allfiles[str_detect(allfiles,str_c(jall[j],"[:punct:]"))]
+  jfiles <- allfiles[str_detect(allfiles,str_c(jall[j],"[:punct:]|[5]"))]
 
   allf <- map(1:length(jfiles), function(f){
 
@@ -132,6 +132,12 @@ for (j in 2:8){
 
     })
 
+    allf <- list(all_e = all_e,
+                   all_f = all_f,
+                   all_b = all_b,
+                   all_trav = all_trav,
+                   alldfchoice = alldfchoice)
+
     return(list(all_e = all_e,
                 all_f = all_f,
                 all_b = all_b,
@@ -146,7 +152,7 @@ for (j in 2:8){
   alldfchoice <- map_dfr(allf, "alldfchoice")
 
   allout <- list(all_e, all_f, all_b, alldfchoice, dtrav)
-  outfile <- paste0("~/westcoast-networks/data/clean/Simulation/static_",jall[j],"_a1.rds")
+  outfile <- paste0("~/westcoast-networks/data/clean/Simulation/static_",jall[j],"_a3.rds")
   write_rds(allout, outfile)
 
 }

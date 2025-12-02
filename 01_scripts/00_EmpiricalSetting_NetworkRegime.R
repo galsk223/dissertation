@@ -121,8 +121,8 @@ df_dist <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchm
   select(-DistanceCostP)
 
 trsplit <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchmarks_df_empnet.rds") %>%
-  filter(HomeRegion == "San Francisco",
-         LANDING_YEAR == 2019) %>%
+  # filter(HomeRegion == "San Francisco",
+  #        LANDING_YEAR == 2019) %>%
   group_split(HomeRegion, LANDING_YEAR)
 # group_split(LANDING_YEAR)
 
@@ -222,18 +222,30 @@ trailing5 <- map_dfr(1:nrow(regionyear), function(j){
            Year %in% (regionyear$Year[[j]]-(nyrs-1)):regionyear$Year[[j]]) %>%
     mutate(Set = j,
            Years = paste0(regionyear$Year[[j]]-(nyrs-1),"-",regionyear$Year[[j]]),
-           SumPos = sum(N_Fisheries-lag(N_Fisheries)>=0, na.rm = T),
-           SumNeg = sum(N_Fisheries-lag(N_Fisheries)<=0, na.rm = T),
+           Connectance = N_Edges/(N_Fisheries*(N_Fisheries-1)/2),
+           MeanCon = mean(Connectance),
+           MeanVes = mean(NVessels),
+           MeanRev = mean(RevMean),
+           MeanDist = mean(DistMean),
+           MeanFisheries = mean(N_Fisheries),
+           MeanWeight = mean(Mean_Weight),
+           MeanMod = mean(Modularity),
+           DivCon = cor(MeanDiversification_All,Connectance),
+           StratCon = cor(N_strategies,Connectance),
+           DivRev = cor(MeanDiversification_All,RevMean),
+           StratRev = cor(N_strategies,RevMean),
            DivSign = sign(MeanDiversification_All-lag(MeanDiversification_All)),
            WeightSign = sign(Mean_Weight-lag(Mean_Weight)),
            PerfectDivWeight = sum(DivSign == WeightSign, na.rm = T),
            DivWeight = cor(MeanDiversification_All,Mean_Weight),
            StratWeight = cor(N_strategies,Mean_Weight),
+           ConWeight = cor(Connectance,Mean_Weight),
            DivMod = cor(MeanDiversification_All,Modularity),
            StratMod = cor(N_strategies,Modularity),
+           ConMod = cor(Connectance,Modularity),
            DivDen = cor(MeanDiversification_All,ClusteringCoefficient_Global),
            StratDen = cor(N_strategies,ClusteringCoefficient_Global),
-           MeanFisheries = mean(N_Fisheries),
+           ConDirection = mean(Connectance-lag(Connectance), na.rm = T),
            FisheryDirection = mean(N_Fisheries-lag(N_Fisheries), na.rm = T),
            MeanDiverse = mean(MeanDiversification_All),
            DiverseDirection = mean(MeanDiversification_All-lag(MeanDiversification_All), na.rm = T),
@@ -247,22 +259,40 @@ compregime <- trailing5 %>%
     # Year > 2007
     # ,SumPos >= 3 | SumNeg >= 3
     ) %>%
-  distinct(Region, Years, SumPos, SumNeg, PerfectDivWeight, MeanFisheries, FisheryDirection,
-           MeanDiverse, DiverseDirection, MeanStrategies, StrategiesDirection,
-           DivWeight, StratWeight, DivMod, StratMod, DivDen, StratDen) %>%
-  mutate(RegimeName = paste0(Region,"\n",Years))
+  distinct(Region, Years, MeanVes, MeanCon, MeanRev, MeanFisheries, MeanWeight,
+           MeanMod,DivRev, StratRev, FisheryDirection, DivCon, StratCon,
+           MeanDiverse, DiverseDirection, MeanStrategies, StrategiesDirection, ConDirection,
+           DivWeight, StratWeight, ConWeight, DivMod, StratMod, ConMod, DivDen, StratDen) %>%
+  mutate(RegimeName = paste0(Region,"\n",Years),
+         StartYear = as.numeric(str_sub(Years,1,4))-2000,
+         ShockYear = ifelse(StartYear %in% c(6:9,13:16),1,0),
+         ShockYearS = ifelse(StartYear %in% c(6:9),1,0),
+         ShockYearC = ifelse(StartYear %in% c(13:16),1,0),
+         ShockYearD = sapply(StartYear, function(y) min(abs(y - c(6:9,13:16)))))
+
+hist(compregime$DivWeight)
+hist(compregime$StratWeight)
+hist(compregime$DivMod)
+hist(compregime$StratMod)
+hist(compregime$DivCon)
+hist(compregime$StratCon)
+
+
+
 
 color_list <- c("#4c6085","#39a0ed","#52050A","#EC0868","#f7b32b","#C09BD8",
                 "#fe5f55","#A44A3F","#13c4a3","#161613")
 
+# , color = as.character(ShockYearD)
 ggplot(compregime, aes(x = FisheryDirection, y = DiverseDirection)) +
   annotate("rect", xmin = -Inf, xmax = 0, ymin = -Inf, ymax = 0,
-           fill = "#1FD643", alpha = 0.5) +
+           fill = "#90EE90", alpha = 0.35) +
   annotate("rect", xmin = 0, xmax = Inf, ymin = 0, ymax = Inf,
-           fill = "#1FD643", alpha = 0.5) +
-  geom_hline(yintercept = 0, color = "grey80") +
-  geom_vline(xintercept = 0, color = "grey80") +
-  geom_point(size = 2) +
+           fill = "#90EE90", alpha = 0.35) +
+  # scale_color_manual(values = color_list[1:max(compregime$ShockYearD+1)]) +
+  # geom_hline(yintercept = 0, color = "grey80") +
+  # geom_vline(xintercept = 0, color = "grey80") +
+  geom_point(size = 4) +
   ggthemes::theme_tufte() +
   labs(x = "Mean network size change \n(annual growth [contraction] in fishery nodes)",
        y = "Mean vessel diversification change \n(annual inc [dec] in fisheries / vessel)",
@@ -274,9 +304,9 @@ ggplot(compregime, aes(x = FisheryDirection, y = DiverseDirection)) +
 
 ggplot(compregime, aes(x = FisheryDirection, y = StrategiesDirection)) +
   annotate("rect", xmin = -Inf, xmax = 0, ymin = -Inf, ymax = 0,
-           fill = "#1FD643", alpha = 0.5) +
+           fill = "#90EE90", alpha = 0.35) +
   annotate("rect", xmin = 0, xmax = Inf, ymin = 0, ymax = Inf,
-           fill = "#1FD643", alpha = 0.5) +
+           fill = "#90EE90", alpha = 0.35) +
   geom_hline(yintercept = 0, color = "grey80") +
   geom_vline(xintercept = 0, color = "grey80") +
   geom_point(size = 2) +
@@ -289,45 +319,106 @@ ggplot(compregime, aes(x = FisheryDirection, y = StrategiesDirection)) +
        caption = "A regime is a sequence of 3 years in a region (2006-2021), in which I compare the correlation between
        vessel diversification and network outcomes specific to the regime state of growth (contraction)")
 
-p <- ggplot(compregime, aes(x = FisheryDirection, y = DivWeight, color = Region)) +
+p <- ggplot(compregime, aes(x = MeanFisheries, y = DivMod, color = Region)) +
   geom_hline(yintercept = 0, color = "grey80") +
-  geom_vline(xintercept = 0, color = "grey80") +
+  # geom_vline(xintercept = 0, color = "grey80") +
   geom_point(size = 2) +
-  geom_text(aes(label = RegimeName), size = 3) +
-  ggthemes::theme_tufte() +
+  geom_text(aes(label = Years), size = 3, nudge_x = 0,nudge_y = 0.15,check_overlap = F) +
+  # ggthemes::theme_tufte() +
+  theme_minimal() +
+  facet_wrap(vars(Region), scales = "free_x") +
   scale_color_manual(values = color_list[1:n_distinct(compregime$Region)],
                      guide = "none") +
-  labs(x = "Mean network size change \n(annual growth [contraction] in fishery nodes)",
-       y = "Correlation between\n mean vessel diversification and edge weight",
+  labs(
+    # x = "Mean network size in fishery nodes)",
+       # y = "Correlation between modularity and \n mean vessel diversification",
        color = "Region",
        title = "Network Measure Interpretations by Regime",
        subtitle = "Using observed California landings data",
        caption = "A regime is a sequence of 4 years in a region (2005-2021), in which I compare the correlation between
        vessel diversification and network outcomes specific to the regime state of growth (contraction)")
+p
+# ggMarginal(p, type = "boxplot", size = 75,
+#            fill="grey50", color = "grey90")
 
-ggMarginal(p, type = "boxplot", size = 75,
-           fill="grey50", color = "grey90", margins = "y")
-
-p <- ggplot(compregime, aes(x = FisheryDirection, y = StratWeight, color = Region)) +
+p <- ggplot(compregime, aes(x = MeanFisheries, y = StratMod, color = Region)) +
   geom_hline(yintercept = 0, color = "grey80") +
-  geom_vline(xintercept = 0, color = "grey80") +
+  # geom_vline(xintercept = 0, color = "grey80") +
   geom_point(size = 2) +
-  ggthemes::theme_tufte() +
-  geom_text(aes(label = RegimeName), size = 3) +
+  # ggthemes::theme_tufte() +
+  facet_wrap(vars(Region), scales = "free_x") +
+  geom_text(aes(label = Years), size = 3, nudge_x = 0,nudge_y = 0.15,check_overlap = F) +
   scale_color_manual(values = color_list[1:n_distinct(compregime$Region)],
                      guide = "none") +
   labs(x = "Mean network size change \n(annual growth [contraction] in fishery nodes)",
-       y = "Correlation between\n # unique strategies and edge weight",
+       y = "Correlation between modularity \n and # unique strategies",
        color = "Region",
        title = "Network Measure Interpretations by Regime",
        subtitle = "Using observed California landings data",
        caption = "A regime is a sequence of 4 years in a region (2005-2021), in which I compare the correlation between
        vessel diversification and network outcomes specific to the regime state of growth (contraction)")
-
+p
 ggMarginal(p, type = "boxplot", size = 75,
-           fill="grey50", color = "grey90", margins = "y")
+           fill="grey50", color = "grey90")
 
 
+
+# sorting -----------------------------------------------------------------
+
+hist(compregime$DivMod)
+hist(compregime$ConMod)
+hist(compregime$StratMod)
+
+hist(compregime$DivCon)
+
+
+hist(compregime$StratCon)
+
+ggplot(compregime,
+       aes(x = DivMod, y = DivCon, color = MeanDiverse)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, color = "grey80") +
+  geom_vline(xintercept = 0, color = "grey80") +
+  facet_wrap(vars(Region), scales = "free_x") +
+  geom_text(aes(label = Years), size = 3, nudge_x = 0,nudge_y = .02,check_overlap = F)
+
+
+ggplot(compregime
+       %>%
+         filter(Region %in% c("Central Coast"))
+       , aes(x = MeanFisheries, y = DivMod, color = MeanRev)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, color = "grey80") +
+  # geom_vline(xintercept = 0, color = "grey80") +
+  facet_wrap(vars(Region)) +
+  geom_text(aes(label = Years), size = 3, nudge_x = 0,nudge_y = .1,check_overlap = F)
+
+c <- compregime %>%
+  mutate(MeanCon = MeanCon*100,
+         PW = ifelse(DivWeight > 0, 1, 0),
+         PM = ifelse(DivMod > 0, 1, 0),
+         NM = ifelse(DivMod < 0, 1, 0),
+         PWPM = PW*PM,
+         PWNM = PW*NM,
+         StartYear = as.numeric(str_sub(Years,1,4))-2000,
+         ShockYear = ifelse(StartYear %in% c(5:9,12:16),1,0))
+
+ggplot(c, aes(x = MeanCon, y = NM)) +
+  geom_point(size = 3) +
+  # geom_hline(yintercept = 0, color = "grey80") +
+  # geom_vline(xintercept = 0, color = "grey80") +
+  facet_wrap(vars(Region), scales = "free_x") +
+  geom_text(aes(label = Years), size = 3, nudge_x = 0,nudge_y = .1,check_overlap = F)
+
+feglm(PW ~ MeanCon, c, family = "logit")
+feglm(PW ~ MeanCon | Region, c, family = "logit")
+feglm(NM ~ MeanCon, c, family = "logit")
+feglm(NM ~ MeanCon | Region, c, family = "logit")
+feglm(PWNM ~ MeanCon, c, family = "logit")
+feglm(PWNM ~ MeanCon | Region, c, family = "logit")
+
+# +
+#   scale_color_manual(values = color_list[1:7])
 
 # regime examples ---------------------------------------------------------
 
@@ -451,77 +542,77 @@ dv <- c(1.6818,1.6788,1.8242)
 wt <- c(4.3226,3.9118,3.9259)
 
 
-
-# expected revenue --------------------------------------------------------
-
-ER <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchmarks_meta.rds")$df_exprev
-
-vessel_week_grid <- expand_grid(VESSEL_ID = unique(trsplit[[1]]$VESSEL_ID),
-                                LANDING_WEEK = unique(trsplit[[1]]$LANDING_WEEK))
-
-vesselclass <- trsplit[[1]] %>%
-  distinct(VESSEL_ID, LengthBin)
-
-wide_choices <- trsplit[[1]] %>%
-  mutate(Value = 1) %>%
-  select(VESSEL_ID, FisheryRegion, LANDING_WEEK, Value) %>%
-  pivot_wider(id_cols = c(VESSEL_ID, LANDING_WEEK),
-              names_from = FisheryRegion,
-              values_from = Value,
-              values_fill = 0)
-
-df_long <- vessel_week_grid %>%
-  left_join(vesselclass, by = c("VESSEL_ID")) %>%
-  left_join(wide_choices, by = c("VESSEL_ID", "LANDING_WEEK")) %>%
-  mutate(across(-c(VESSEL_ID, LengthBin, LANDING_WEEK), ~replace_na(.x, 0))) %>%
-  mutate(`Not Fishing` = if_else(
-    rowSums(across(-c(VESSEL_ID, LengthBin, LANDING_WEEK))) == 0,
-    1, 0)) %>%
-  pivot_longer(cols = -c(VESSEL_ID, LANDING_WEEK, LengthBin),
-               names_to = "RegionFishery",
-               values_to = "chosen") %>%
-  left_join(ER %>%
-              select(LANDING_WEEK, LengthBin, RegionFishery, ExpRev),
-            by = c("LANDING_WEEK", "LengthBin", "RegionFishery")) %>%
-  mutate(ExpRev = replace_na(ExpRev, 0))
-
-df_ml <- df_long %>%
-  unite(choice_id, VESSEL_ID, LANDING_WEEK, remove = FALSE)
-
-library(mlogit)
-
-dat <- mlogit.data(
-  df_ml,
-  choice = "chosen",
-  shape = "long",
-  alt.var = "RegionFishery",
-  chid.var = "choice_id"
-)
-
-mxl <- mlogit(
-  chosen ~ ExpRev,              # ASCs created automatically
-  data = dat,
-  # rpar = list(asc = "n"),       # random ASCs
-  # heterosc = TRUE,              # allow ASC variation
-  R = 200,
-  halton = NA,
-  reflevel = "Not Fishing"
-)
-
-pred_mat <- predict(mxl, newdata = df_ml, type = "probabilities")
-pred_long <- pred_mat %>%
-  as_tibble() %>%
-  mutate(choice_id = unique(df_ml$choice_id)) %>%
-  pivot_longer(
-    cols = -choice_id,
-    names_to = "RegionFishery",
-    values_to = "pred_prob"
-  )
-
-df_pred <- df_ml %>%
-  left_join(pred_long, by = c("choice_id", "RegionFishery")) %>%
-  group_by(choice_id) %>%
-  mutate(PredChoice = ifelse(pred_prob == max(pred_prob),1,0)) %>%
-  filter(PredChoice == 1)
+#
+# # expected revenue --------------------------------------------------------
+#
+# ER <- read_rds("../westcoast-networks/data/clean/Simulation/empiricalbenchmarks_meta.rds")$df_exprev
+#
+# vessel_week_grid <- expand_grid(VESSEL_ID = unique(trsplit[[1]]$VESSEL_ID),
+#                                 LANDING_WEEK = unique(trsplit[[1]]$LANDING_WEEK))
+#
+# vesselclass <- trsplit[[1]] %>%
+#   distinct(VESSEL_ID, LengthBin)
+#
+# wide_choices <- trsplit[[1]] %>%
+#   mutate(Value = 1) %>%
+#   select(VESSEL_ID, FisheryRegion, LANDING_WEEK, Value) %>%
+#   pivot_wider(id_cols = c(VESSEL_ID, LANDING_WEEK),
+#               names_from = FisheryRegion,
+#               values_from = Value,
+#               values_fill = 0)
+#
+# df_long <- vessel_week_grid %>%
+#   left_join(vesselclass, by = c("VESSEL_ID")) %>%
+#   left_join(wide_choices, by = c("VESSEL_ID", "LANDING_WEEK")) %>%
+#   mutate(across(-c(VESSEL_ID, LengthBin, LANDING_WEEK), ~replace_na(.x, 0))) %>%
+#   mutate(`Not Fishing` = if_else(
+#     rowSums(across(-c(VESSEL_ID, LengthBin, LANDING_WEEK))) == 0,
+#     1, 0)) %>%
+#   pivot_longer(cols = -c(VESSEL_ID, LANDING_WEEK, LengthBin),
+#                names_to = "RegionFishery",
+#                values_to = "chosen") %>%
+#   left_join(ER %>%
+#               select(LANDING_WEEK, LengthBin, RegionFishery, ExpRev),
+#             by = c("LANDING_WEEK", "LengthBin", "RegionFishery")) %>%
+#   mutate(ExpRev = replace_na(ExpRev, 0))
+#
+# df_ml <- df_long %>%
+#   unite(choice_id, VESSEL_ID, LANDING_WEEK, remove = FALSE)
+#
+# library(mlogit)
+#
+# dat <- mlogit.data(
+#   df_ml,
+#   choice = "chosen",
+#   shape = "long",
+#   alt.var = "RegionFishery",
+#   chid.var = "choice_id"
+# )
+#
+# mxl <- mlogit(
+#   chosen ~ ExpRev,              # ASCs created automatically
+#   data = dat,
+#   # rpar = list(asc = "n"),       # random ASCs
+#   # heterosc = TRUE,              # allow ASC variation
+#   R = 200,
+#   halton = NA,
+#   reflevel = "Not Fishing"
+# )
+#
+# pred_mat <- predict(mxl, newdata = df_ml, type = "probabilities")
+# pred_long <- pred_mat %>%
+#   as_tibble() %>%
+#   mutate(choice_id = unique(df_ml$choice_id)) %>%
+#   pivot_longer(
+#     cols = -choice_id,
+#     names_to = "RegionFishery",
+#     values_to = "pred_prob"
+#   )
+#
+# df_pred <- df_ml %>%
+#   left_join(pred_long, by = c("choice_id", "RegionFishery")) %>%
+#   group_by(choice_id) %>%
+#   mutate(PredChoice = ifelse(pred_prob == max(pred_prob),1,0)) %>%
+#   filter(PredChoice == 1)
 
 

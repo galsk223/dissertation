@@ -95,13 +95,15 @@ jall <- c("scalar", "sc",
           "kk1", "kk2",
           "knk1", "knk2",
           "nknk1", "nknk2", "smaller")
-addl <- 1
+addl <- 3
 # addl 2 for 1-5 x 300
 # fix closeness?
+# addl 3 for 0-1 in key fisheries
 
-j <- 3
+j <- 1
 s <- 1
-for(j in 2:9){
+
+for(j in c(1,3,4,5)){
 
   log_file <- file.path(log_dir, sprintf("worker_%02d.log", j))
   if (file.exists(log_file)) file.remove(log_file)
@@ -110,7 +112,8 @@ for(j in 2:9){
 
   plan(sequential)
   plan(multisession, workers = 32)
-  cache_simulation_par <- furrr::future_map(1:100,function(s){
+  # ifelse(j == 1, n <- 25, n <- 50)
+  cache_simulation_par <- furrr::future_map(1:500,function(s){
 
     # cache_iter <- list()
     # for(s in setwrite[1:3]){
@@ -125,9 +128,9 @@ for(j in 2:9){
     asc_fc <- asc_fc_start
 
     if(jall[[j]] %in% c("scalar","smaller")){
-      rscalef <- runif(1,1,3)
+      rscalef <- runif(1,0,5)
       asc_fc <- asc_fc_start*rscalef
-      rscales <- runif(1,1,3)
+      rscales <- runif(1,0,5)
       asc_sc <- asc_sc_start*rscales
     }
 
@@ -144,7 +147,7 @@ for(j in 2:9){
       asc_sc <- asc_sc_start*rscales
     }
     if(jall[[j]] == "fc"){
-      rscalef <- runif(1,1,3)
+      rscalef <- runif(1,0,1)
       asc_fc <- asc_fc_start*rscalef
     }
 
@@ -153,11 +156,11 @@ for(j in 2:9){
       asc_sc <- asc_sc_start*rscales
     }
     if(str_detect(jall[[j]],"1")){
-      rscalef <- runif(1,1,3)
+      rscalef <- runif(1,0,1)
       asc_fc <- asc_fc_start
       asc_fc[as.numeric(fcindex$rowname)] <- asc_fc[as.numeric(fcindex$rowname)]*rscalef
     } else if(str_detect(jall[[j]],"2")) {
-      rscalef <- runif(1,1,3)
+      rscalef <- runif(1,0,1)
       asc_fc <- asc_fc_start
       asc_fc[-as.numeric(fcindex$rowname)] <- asc_fc[-as.numeric(fcindex$rowname)]*rscalef
     }
@@ -222,9 +225,9 @@ for(j in 2:9){
 
 }
 
-s1 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar.rds")
-s2 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar_2.rds")
-si <- s2[[1]]
+s1 <- read_rds("~/westcoast-networks/data/clean/Simulation/static_scalar500.rds")[[1]]
+# s2 <- read_rds("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar_2.rds")
+# si <- s2[[1]]
 sreiter <- map(s2, function(si){
 
   sout <- si$sim_id %>%
@@ -233,6 +236,6 @@ sreiter <- map(s2, function(si){
                sim_id = sout)
 
 })
-s <- c(s1,sreiter)
-write_rds(s,
-          paste0("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar500.rds"))
+# s <- c(s1,sreiter)
+# write_rds(s,
+#           paste0("/home/gkoss/westcoast-networks/data/Simulation/StaticSimulationOutcomes/Static_adjustmentscalar500.rds"))

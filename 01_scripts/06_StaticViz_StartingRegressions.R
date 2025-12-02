@@ -39,8 +39,9 @@ Z_resid <- lapply(scall[, c("N_Fisheries", "N_Edges","MeanDiversification_All",
 
 scall_resid <- cbind(scall, Z_resid)
 
-feols(ClusteringCoefficient_Global ~ SwitchingCost + FishingCost +
-        N_Fisheries, scall_resid)
+feols(Modularity ~ SwitchingCost + N_Fisheries, scall)
+feols(Modularity ~ MeanDiversification_All + N_strategies, scall)
+feols(Mean_Weight ~ SwitchingCost, scall)
 
 formulas_scall <- list(
   N_strategies ~ SwitchingCost + FishingCost,
@@ -64,6 +65,7 @@ formulas_scall <- list(
   # Connectance ~ SwitchingCost + FishingCost + MeanDiversification_All + N_strategies,
   Connectance ~ MeanDiversification_All + N_strategies,
   Mean_Weight ~ MeanDiversification_All + N_strategies,
+  Modularity ~ MeanDiversification_All + N_strategies,
 
   Mean_Weight ~ N_Fisheries,
   Mean_Weight ~ SwitchingCost + FishingCost,
@@ -86,12 +88,12 @@ run_models <- function(data, formulas) {
 }
 
 # Run for scall
-results_scall <- run_models(scall, formulas_scall[1:12])
+results_scall <- run_models(scall, formulas_scall[1:13])
 
 names(results_scall) <- c("N_strategies","MeanDiversification_All",
   "MeanDiversification_Diverse", "N_diversified2",
   "N_Fisheries", "N_Edges", "Connectance", "Mean_Weight",
-  "N_Fisheries", "N_Edges", "Connectance", "Mean_Weight")
+  "N_Fisheries", "N_Edges", "Connectance", "Mean_Weight", "Modularity")
 # ,
 #   "N_Fisheries", "N_Edges", "N_Edges", "Mean_Weight", "Mean_Weight",
 #   "N_Fisheries", "ClusteringCoefficient_Global", "ClusteringCoefficient_Global",
@@ -100,7 +102,7 @@ names(results_scall) <- c("N_strategies","MeanDiversification_All",
 
 options(modelsummary_factory_word = 'huxtable')
 modelsummary(
-  results_scall[1:4],
+  results_scall[9:13],
   stars = TRUE,           # adds significance stars
   coef_rename = NULL,    # or "html", "latex" depending on context
   gof_map = c("nobs", "r.squared")

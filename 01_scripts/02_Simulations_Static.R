@@ -94,13 +94,14 @@ jall <- c("scalar", "sc",
           "kk", "knk", "nknk",
           "kk1", "kk2",
           "knk1", "knk2",
-          "nknk1", "nknk2", "smaller")
-addl <- 3
+          "nknk1", "nknk2", "smaller",
+          "fc12")
+addl <- 0
 # addl 2 for 1-5 x 300
 # fix closeness?
 # addl 3 for 0-1 in key fisheries
 
-j <- 1
+j <- 16
 s <- 1
 
 for(j in c(1,3,4,5)){
@@ -163,6 +164,16 @@ for(j in c(1,3,4,5)){
       rscalef <- runif(1,0,1)
       asc_fc <- asc_fc_start
       asc_fc[-as.numeric(fcindex$rowname)] <- asc_fc[-as.numeric(fcindex$rowname)]*rscalef
+    }
+
+    if(jall[[j]] == "fc12"){
+      rscalef1 <- runif(1,0,5)
+      rscalef2 <- runif(1,0,5)
+      rscalef <- paste("key:",round(rscalef1,2),
+                       "non-key:",round(rscalef2,2))
+      asc_fc <- asc_fc_start
+      asc_fc[as.numeric(fcindex$rowname)] <- asc_fc[as.numeric(fcindex$rowname)]*rscalef1
+      asc_fc[-as.numeric(fcindex$rowname)] <- asc_fc[-as.numeric(fcindex$rowname)]*rscalef2
     }
 
     if(str_detect(jall[[j]],"kk")) {

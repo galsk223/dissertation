@@ -8,7 +8,7 @@ scplot <- read_rds("~/westcoast-networks/data/clean/Simulation/static_scalar_a3.
 # scplot <- read_rds("~/westcoast-networks/data/clean/Simulation/static_sc.rds")
 scstart <- scplot[[1]] %>%
   # filter(iter < 100) %>%
-  distinct(iter, SwitchingCost, FishingCost, N_Fisheries, N_Edges, Mean_Weight,
+  distinct(iter, SwitchingCost, FishingCost, N_Fisheries, N_Edges, Mean_Weight, NClusters,
            MeanDiversification_All, N_strategies, N_diversified2,
            Modularity, ClusteringCoefficient_Global, H, MedianToCentroid, HullAreaTrimmed, MeanToCentroid, HullArea, FragMeasure) %>%
   filter(
@@ -19,12 +19,17 @@ scstart <- scplot[[1]] %>%
          ) %>%
   mutate(SwitchingCostS = as.numeric(scale(SwitchingCost)),
          FishingCostS = as.numeric(scale(FishingCost)),
-         SCostClass = case_when(SwitchingCostS > .75 ~ "High SC",
-                                SwitchingCostS < -.75 ~ "Low SC", T ~ "Med SC"),
-         FCostClass = case_when(FishingCostS > .75 ~ "High FC",
-                                FishingCostS < -.75 ~ "Low FC", T ~ "Med FC"),
+         Connectance = N_Edges/(N_Fisheries*(N_Fisheries-1)/2),
+         # SCostClass = case_when(SwitchingCostS > .75 ~ "High SC",
+         #                        SwitchingCostS < -.75 ~ "Low SC", T ~ "Med SC"),
+         # FCostClass = case_when(FishingCostS > .75 ~ "High FC",
+         #                        FishingCostS < -.75 ~ "Low FC", T ~ "Med FC"),
+         SCostClass = case_when(SwitchingCostS > .5 ~ "High SC",
+                                SwitchingCostS < -.5 ~ "Low SC", T ~ "Med SC" ),
+         FCostClass = case_when(FishingCostS > .5 ~ "High FC",
+                                FishingCostS < -.5 ~ "Low FC", T ~ "Med FC"),
          CostClass = paste0(SCostClass,"; ",FCostClass)) %>%
-  # filter(!str_detect(CostClass, "Med")) %>%
+  filter(!str_detect(CostClass, "Med")) %>%
   group_by(CostClass) %>%
   add_tally()
 
@@ -56,10 +61,15 @@ allcomp <- map_dfr(1:length(loop), function(c){
 
   dfclass <- scstart %>%
     filter(CostClass == loop[[c]])
-  out <- permutations(n = nrow(dfclass), r = k,
-                      v = dfclass$iter) %>%
-    as_tibble() %>%
-    sample_n(50, replace = F)
+  out <- tibble(iter1 = sample(dfclass$iter,100, replace = T),
+                iter2 = sample(dfclass$iter,100, replace = T),
+                iter3 = sample(dfclass$iter,100, replace = T),
+                iter4 = sample(dfclass$iter,100, replace = T))
+
+  # out <- permutations(n = nrow(dfclass), r = k,
+  #                     v = dfclass$iter) %>%
+  #   as_tibble() %>%
+  #   sample_n(50, replace = F)
 
   classcomp <- map_dfr(1:nrow(out), function(o){
 
@@ -71,6 +81,8 @@ allcomp <- map_dfr(1:length(loop), function(c){
       select(-order) %>%
       mutate(Set = paste0(CostClass,"\n",o),
              Iter = list(iter),
+             MeanCon = mean(Connectance),
+             MeanClust = mean(NClusters),
              # SumPos = sum(N_Fisheries-lag(N_Fisheries)>=0, na.rm = T),
              # SumNeg = sum(N_Fisheries-lag(N_Fisheries)<=0, na.rm = T),
              DivWeight = cor(MeanDiversification_All,Mean_Weight),
@@ -97,9 +109,9 @@ allcomp <- map_dfr(1:length(loop), function(c){
   })
 
 })
-
+# FC_Range, SC_Range,
 compregime <- allcomp %>%
-  distinct(Set, Iter, CostClass, FC_Range, SC_Range, MeanFisheries, FisheryDirection,
+  distinct(Set, Iter, CostClass,MeanCon, MeanClust, MeanFisheries, FisheryDirection,
            SCWeight, FCWeight, SCMod, FCMod, SCStrat, FCStrat, SCDiv, FCDiv,
            MeanDiverse, DiverseDirection, MeanStrategies, StrategiesDirection,
            DivWeight, StratWeight, DivMod, StratMod, DivDen, StratDen) %>%
@@ -108,9 +120,19 @@ compregime <- allcomp %>%
                                  "Med SC; Low FC", "Med SC; Med FC", "Med SC; High FC",
                                  "High SC; Low FC", "High SC; Med FC", "High SC; High FC")))
 
+gs <- ggplot(compregime, aes(x = DivWeight)) +
+  geom_histogram(bins = 16, color = "grey80", fill = "grey70") +
+  ggthemes::theme_tufte() +
+  labs(x = "Correlation between mean fisheries / vessel \n and mean weight",
+       y = "Count of multi-year sequences",
+       title = "Simulated Commercial Fishing",
+       subtitle = "Multi-year Network Relationships")
+gs
+
 hist(compregime$DivMod)
-hist(compregime$DivWeight)
 hist(compregime$StratMod)
+
+hist(compregime$DivWeight)
 hist(compregime$StratWeight)
 
 hist(compregime$SCWeight)
@@ -164,29 +186,50 @@ ggplot(compregime, aes(x = FisheryDirection, y = StrategiesDirection)) +
                   the regime state of cost setting (9 settings total)")
 
 #MeanFisheries, y =
-p <- ggplot(compregime, aes(x =DivWeight)) +
+MeanFisheries <- compregime %>%
+  group_by
+  summarize(MeanFisheries = mean(MeanFisheries)) %>%
+  pull()
+
+p <- ggplot(compregime %>%
+              group_by(CostClass) %>%
+              mutate(MeanMeanFisheries = mean(MeanClust)), aes(x =DivWeight)) +
   # annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = Inf,
   #          fill = "#90EE90", alpha = 0.35) +
+  # geom_hline(aes(yintercept = MeanMeanFisheries), color = "lightblue", size = 1) +
   # geom_hline(yintercept = 0, color = "grey80") +
   # geom_vline(xintercept = 0, color = "grey80") +
-  # geom_point(aes(y = FisheryDirection), size = 3, alpha = .4) +
-  geom_histogram(bins = 20) +
+  # geom_point(aes(y = MeanClust), size = 3, alpha = .4) +
+  geom_histogram(bins = 16) +
   facet_wrap(vars(CostClass)) +
   # geom_text(aes(label = Set), size = 3) +
   ggthemes::theme_tufte() +
   scale_color_manual(values = color_list[1:n_distinct(compregime$Set)],
                      guide = "none") +
   labs(
-    # x = "Mean network size change \n(annual growth [contraction] in fishery nodes)",
-       # y = "Correlation between outcome and \n mean vessel diversification",
+    y = "Count of multi-year sequences",
+       x = "Correlation between mean fisheries / vessel \n and mean edge weight",
        # color = "Region",
-       title = "Network Measure Interpretations by Regime",
-       subtitle = "Using RUM simulated fishing data",
-       caption = "Each point is a regime: a combination of 4 simulation iterations of a similar fishing cost and switching cost.
-                  For each regime I compare the correlation between vessel diversification and network outcomes specific to
-                  the regime state of cost setting (9 settings total)")
+    title = "Simulated Commercial Fishing",
+    subtitle = "Multi-year Network Relationships",
+       caption = "") +
+  theme(
+    strip.text = element_text(size = 6),
+    axis.title   = element_text(size = 8),
+    plot.subtitle= element_text(size = 6),
+    axis.text    = element_text(size = 8),
+    plot.title   = element_text(size = 10),
+    plot.caption = element_text(size = 6)
+  )
 
 p
+f + c + cl +
+  plot_layout(axis_titles = "collect") +
+  plot_annotation(caption = "Each observation is a combination of 4 simulation iterations of a similar fishing cost and switching cost.
+                  For each sequence I compare the correlation between vessel diversification
+                  and network outcomes specific to the regime state of cost setting
+                  Grey vertical line is correlation = 0, blue horizontal line is mean y-value")
+
 # ggMarginal(p, type = "boxplot", size = 75,
 #            fill="grey50", color = "grey90", margins = "y")
 

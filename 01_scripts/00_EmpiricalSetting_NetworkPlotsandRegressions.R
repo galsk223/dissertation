@@ -74,23 +74,47 @@ ggplot(allemp,
   geom_point() +
   theme_minimal()
 g1 <- ggplot(allemp,
-       aes(x = RevMed, y = N_strategies/NVessels)) +
-  geom_point() +
-  theme_minimal()
+       aes(x = RevMed, y = N_strategies/NVessels, color = Year)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(x = "Median annual revenue",
+       y = "# Stategies / vessel")
 g2 <- ggplot(allemp,
-             aes(x = RevMed, y = MeanDiversification_All)) +
-  geom_point() +
-  theme_minimal()
-g1+g2+plot_annotation(title = "Empirical Motivation",
-                      subtitle = "Diversification and Revenue")
+             aes(x = MeanDiversification_All, y = RevMed)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)) +
+  # theme(legend.position = "bottom") +
+  labs(y = "Median annual revenue",
+       x = "Mean diversification \n(fisheries per vessel)",
+       title = "Diversification and Revenue",
+                     subtitle = "by Region and Year")
+gs <- ggMarginal(g2, size = 30,type = "boxplot", fill="grey50", color = "grey90")
+ggsave(plot = gs, paste0("/home/gkoss/dissertation_out/EmpiricalStart.png"),
+       width = 6.25, height = 6,
+       bg = "transparent")
 
+g1+g2+plot_annotation(title = "Diversification and Revenue",
+                      subtitle = "by Region and Year") +
+  plot_layout(guides = "collect")
+
+ggplot(allemp,
+             aes(x = MeanDiversification_All,
+                 y = N_Fisheries, color = N_strategies)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA))
 
 formulas_scall <- list(
+  N_Fisheries ~ MeanDiversification_All,
   N_Fisheries ~ MeanDiversification_All + N_strategies,
   N_Edges ~ MeanDiversification_All + N_strategies,
   Mean_Weight ~ MeanDiversification_All + N_strategies,
-  Modularity ~ MeanDiversification_All + N_strategies,
-  ClusteringCoefficient_Global ~ MeanDiversification_All + N_strategies
+  Modularity ~ MeanDiversification_All + N_strategies
 )
 
 run_models <- function(data, formulas) {
@@ -100,11 +124,13 @@ run_models <- function(data, formulas) {
 }
 
 # Run for scall
+ae <- allemp %>%
+  distinct(Region, Year, .keep_all = T)
 results_scall <- run_models(allemp %>%
                               distinct(Region, Year, .keep_all = T), formulas_scall)
 
-names(results_scall) <- c("N_Fisheries","N_Edges","Mean_Weight",
-                          "Modularity", "ClusteringCoefficient_Global")
+names(results_scall) <- c("N_Fisheries","N_Fisheries","N_Edges",
+                          "Mean_Weight","Modularity")
 # ,
 #   "N_Fisheries", "N_Edges", "N_Edges", "Mean_Weight", "Mean_Weight",
 #   "N_Fisheries", "ClusteringCoefficient_Global", "ClusteringCoefficient_Global",

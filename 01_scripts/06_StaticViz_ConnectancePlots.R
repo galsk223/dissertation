@@ -1,5 +1,5 @@
 scalar <- read_rds("~/westcoast-networks/data/clean/Simulation/static_scalar500.rds")[[1]]
-sc <- read_rds("~/westcoast-networks/data/clean/Simulation/static_sc_a1.rds")[[1]]
+sc <- read_rds("~/westcoast-networks/data/clean/Simulation/static_sc_a2.rds")[[1]]
 call <- scalar %>%
   distinct(iter, SwitchingCost, FishingCost, N_Fisheries, N_Edges, Mean_Weight,
            MeanDiversification_All, MeanDiversification_Diverse, N_strategies, N_diversified2, FragMeasure,
@@ -15,10 +15,13 @@ call <- scalar %>%
          SC2 = SwitchingCost+SwitchingCost^2,
          Connectance = N_Edges/(N_Fisheries*N_Fisheries-1)/2)
 
-scall <- sc %>%
-  distinct(iter, SwitchingCost, FishingCost, N_Fisheries, N_Edges, Mean_Weight,
-           MeanDiversification_All, MeanDiversification_Diverse, N_strategies, N_diversified2, FragMeasure,
-           Modularity, ClusteringCoefficient_Global, H, MedianToCentroid, HullAreaTrimmed, DistMean, RevMean, RevGini) %>%
+scall <- bind_rows(sc %>%
+                     distinct(iter, .keep_all = T) %>%
+                     filter(SwitchingCost > 1),
+                   sc %>%
+                     distinct(iter, .keep_all = T) %>%
+                     filter(SwitchingCost < 1) %>%
+                     sample_n(25)) %>%
   # filter(iter <= 100) %>%
   mutate(FisheryGroup = case_when(N_Fisheries <= 5 ~ "0-5",
                                   N_Fisheries >= 6 &
@@ -29,10 +32,11 @@ scall <- sc %>%
          FisheryGroup2 = case_when(N_Fisheries <= 8 ~ "0-8",
                                    N_Fisheries >= 9 ~ "9+"),
          Connectance = N_Edges/(N_Fisheries*N_Fisheries-1)/2)
+hist(scall$SwitchingCost)
 
-sc01 <- which(scall$SwitchingCost < 1)
-drop_rows <- sample(sc01, 75)
-scall <- scall[-drop_rows, ]
+# sc01 <- which(scall$SwitchingCost < 1)
+# drop_rows <- sample(sc01, 75)
+# scall <- scall[-drop_rows, ]
 
 color_list <- c("#4c6085","#39a0ed","#f7b32b","#EC0868","#13c4a3","#C09BD8","#52050A",
                 "#fe5f55","#161613","#A44A3F")
@@ -245,33 +249,77 @@ library(tidySEM)
 library(fixest)
 library(parameters)
 
-f1 <- feols(N_Fisheries ~ SwitchingCost, scall)
+f1 <- feols(N_Fisheries ~ SwitchingCost, scall %>%
+              mutate(SwitchingCost = scale(SwitchingCost)) %>%
+              filter(NClusters >= 2))
+fd <- feols(MeanDiversification_All ~ SwitchingCost, scall %>%
+              mutate(SwitchingCost = scale(SwitchingCost)) %>%
+              filter(NClusters >= 2))
+fs <- feols(N_strategies ~ SwitchingCost, scall %>%
+              mutate(SwitchingCost = scale(SwitchingCost)) %>%
+              filter(NClusters >= 2))
 outcomes <- c("N_Edges","Connectance", "Mean_Weight", "ClusteringCoefficient_Global",
               "Modularity", "FragMeasure")
 names <- c("# Edges","Connectance","Mean \nWeight", "Density", "Modularity", "Frag \nMeasure")
-o <- 1
+o <-
 
 dags <- list()
 for(o in 1:length(outcomes)){
 
   f2 <- feols(
-    as.formula(paste0(outcomes[o], " ~ SwitchingCost + N_Fisheries")),
-    scall
+    as.formula(paste0(outcomes[o], " ~ SwitchingCost + MeanDiversification_All + N_strategies + N_Fisheries")),
+    scall %>%
+      mutate(SwitchingCost = scale(SwitchingCost)) %>%
+      filter(NClusters >= 2)
   )
+  # + SwitchingCost^2
 
-  edges <- tibble(from = c("SwitchingCost", "SwitchingCost", "N_Fisheries"),
-                  to = c("N_Fisheries", outcomes[o], outcomes[o]),
-                  est = c(f1$coefficients[2], f2$coefficients[2], f2$coefficients[3]),
-                  p = c(f1$coeftable[2,4],
+  edges <- tibble(from = c("SwitchingCost", "SwitchingCost","SwitchingCost","SwitchingCost",
+                           "MeanDiversification_All","N_strategies", "N_Fisheries"),
+                  to = c("MeanDiversification_All", "N_strategies", "N_Fisheries",
+                         outcomes[o], outcomes[o], outcomes[o], outcomes[o]),
+                  est = c(fd$coefficients[2], fs$coefficients[2], f1$coefficients[2],
+                          f2$coefficients[2], f2$coefficients[3], f2$coefficients[4], f2$coefficients[5]),
+                  p = c(fd$coeftable[2,4],
+                        fs$coeftable[2,4],
+                        f1$coeftable[2,4],
                         f2$coeftable[2,4],
-                        f2$coeftable[3,4])) %>%
-    mutate(p = case_when(p < .001 ~ "***",
+                        f2$coeftable[3,4],
+                        f2$coeftable[4,4],
+                        f2$coeftable[5,4])) %>%
+    mutate(R2lab = c("(a)","(b)","(c)","(d)","(d)","(d)","(d)"),
+           p = case_when(p < .001 ~ "***",
                          p < .01 ~ "**",
                          p < .05 ~ "*",
                          p < .1 ~ "+",
                          T ~ ""),
-           label = paste0(round(est,3), p),
+           label = paste0(round(est,2), p," ",R2lab),
+           # label = case_when(from == "SwitchingCost" & to == outcomes[o] ~
+           #                     paste0(round(est,2), "sc", p,
+           #                            ifelse(f2$coefficients[6] > 0,
+           #                                   "+",""),round(f2$coefficients[6],2),
+           #                            case_when(f2$coeftable[6,4] < .001 ~ "sc\u00B2***",
+           #                                      f2$coeftable[6,4] < .01 ~ "sc\u00B2** ",
+           #                                      f2$coeftable[6,4] < .05 ~ "sc\u00B2*",
+           #                                      f2$coeftable[6,4] < .1 ~ "sc\u00B2+",
+           #                                      T ~ "sc\u00B2"),
+           #                            " ", R2lab),
+           #                 T ~ label),
            direction = ifelse(est > 0, T, F))
+
+  # edges <- tibble(from = c("SwitchingCost", "SwitchingCost", "N_Fisheries"),
+  #                 to = c("N_Fisheries", outcomes[o], outcomes[o]),
+  #                 est = c(f1$coefficients[2], f2$coefficients[2], f2$coefficients[3]),
+  #                 p = c(f1$coeftable[2,4],
+  #                       f2$coeftable[2,4],
+  #                       f2$coeftable[3,4])) %>%
+  #   mutate(p = case_when(p < .001 ~ "***",
+  #                        p < .01 ~ "**",
+  #                        p < .05 ~ "*",
+  #                        p < .1 ~ "+",
+  #                        T ~ ""),
+  #          label = paste0(round(est,3), p),
+  #          direction = ifelse(est > 0, T, F))
 
   nodes <- tibble(
     name = c("SwitchingCost", "N_Fisheries", outcomes[o]),
@@ -280,28 +328,41 @@ for(o in 1:length(outcomes)){
     y = c(0, .5, 0)
   )
 
+  nodes <- tibble(
+    name = c("SwitchingCost", "MeanDiversification_All", "N_strategies", "N_Fisheries",
+             outcomes[o]),
+    nlab = c("switching \ncost", "mean fisheries\n/ vessel", "# strategies", "# fisheries", names[o]),
+    x = c(0, 1, 1, 1, 2),
+    y = c(0, .15,.075, -.075, 0)
+  )
+
   graph <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 
   dags[[o]] <- ggraph(graph, layout = "manual", x = x, y = y) +
     geom_edge_link(aes(label = label, color = direction),
-                   arrow = arrow(length = unit(5, "mm")),
-                   end_cap = circle(12, "mm"),
-                   start_cap = circle(12, "mm"),
-                   label_push = unit(1, "pt"),
+                   arrow = arrow(length = unit(4, "mm")),
+                   end_cap = circle(16, "mm"),
+                   start_cap = circle(4, "mm"),
+                   label_push = unit(.75, "pt"),
                    angle_calc = "along",
                    label_dodge = unit(2.5, "mm")) +
     geom_node_label(aes(label = nlab),
-                    size = 4,
-                    label = unit(5, "mm"),
+                    # label.size = 4,
+                    # label = unit(3, "mm"),
                     label.padding = unit(4, "pt"),
                     label.r = unit(3, "pt"),
                     fill = "white",
                     color = "black") +
     theme_void() +
     scale_edge_color_manual(values = c("#fe5f55","#39a0ed"), guide = "none") +
-    expand_limits(x = c(-0.3, 2.3), y = c(-0.1, .6))
+    expand_limits(x = c(-0.3, 2.3), y = c(-0.05, .2)) +
+    labs(caption = paste0("R\u00B2 \n(a): ",round(r2(fd)[["r2"]],2),
+                          ", (b): ",round(r2(fs)[["r2"]],2),
+                          ", (c): ",round(r2(f1)[["r2"]],2),
+                          ", (d): ",round(r2(f2)[["r2"]],2)))
 
 }
 # f5 <- feols(ClusteringCoefficient_Global ~ SwitchingCost + N_Fisheries, scall)
 
-dags
+dags[[3]] + dags[[5]]
+dags[[4]] + dags[[6]]

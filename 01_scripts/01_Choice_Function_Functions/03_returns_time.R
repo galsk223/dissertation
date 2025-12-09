@@ -60,10 +60,17 @@ graph_time_trans <- function(cache_dfchoice, burnin, yi, nvessels, largestcc){
     fc <- 0
   }
 
-  closeness <- igraph::closeness(gy)
+  # closeness <- igraph::closeness(gy)
   strength <- igraph::strength(gy)
 
   embstats <- fleet_summary_emb_safe(gy, .01)
+
+  eyw <- esi %>%
+    mutate(weight = 1/weight)
+  gy <- graph_from_data_frame(eyw,
+                              directed = F,
+                              vertices = vy)
+  closeness <- igraph::closeness(gy)
 
   dfgraph_out <- tibble(Year = yi,
                         Fishery = names(membership(cw)),
@@ -151,10 +158,17 @@ graph_time_corr <- function(cache_dfchoice, yi, nvessels, largestcc){
     fc <- 0
   }
 
-  closeness <- igraph::closeness(gy)
+  # closeness <- igraph::closeness(gy)
   strength <- igraph::strength(gy)
 
   embstats <- fleet_summary_emb_safe(gy, .01)
+
+  eyw <- esi %>%
+    mutate(weight = 1/weight)
+  gy <- graph_from_data_frame(eyw,
+                              directed = F,
+                              vertices = vy)
+  closeness <- igraph::closeness(gy)
 
   dfgraph_out <- tibble(Year = yi,
                         Fishery = names(membership(cw)),

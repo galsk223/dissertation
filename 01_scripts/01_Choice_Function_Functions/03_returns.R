@@ -36,6 +36,7 @@ fishing_fcn <- function(df_choice, yi){
 
 }
 
+# df_choice <- cache_dfchoice[[1]]
 graph_ext_fcn <- function(df_choice, fishery_pairs, fisherylist_use, yi, largestcc){
 
   nfisheries <- length(fisherylist_use)
@@ -123,13 +124,16 @@ graph_ext_fcn <- function(df_choice, fishery_pairs, fisherylist_use, yi, largest
     fc <- 0
   }
 
-  # E(g)$inv_weight <- 1 / E(g)$weight
-  # closeness(g, weights = E(g)$inv_weight)
-  closeness <- igraph::closeness(gy)
-
   strength <- igraph::strength(gy)
 
   embstats <- fleet_summary_emb_safe(gy, .01)
+
+  eyw <- esi %>%
+    mutate(weight = 1/weight)
+  gy <- graph_from_data_frame(eyw,
+                              directed = F,
+                              vertices = vy)
+  closeness <- igraph::closeness(gy)
 
   dfgraph_out <- tibble(Year = yi,
                         Fishery = names(membership(cw)),
@@ -236,10 +240,16 @@ graph_fuller_fcn <- function(df_choice, yi, fisherylist_use, largestcc){
     fc <- 0
   }
 
-  closeness <- igraph::closeness(gy)
   strength <- igraph::strength(gy)
 
   embstats <- fleet_summary_emb_safe(gy, .01)
+
+  eyw <- esi %>%
+    mutate(weight = 1/weight)
+  gy <- graph_from_data_frame(eyw,
+                              directed = F,
+                              vertices = vy)
+  closeness <- igraph::closeness(gy)
 
   dfgraph_out_f <- tibble(Year = yi,
                         Fishery = names(membership(cw)),
@@ -369,7 +379,9 @@ graph_bip_fcn <- function(df_choice, yi, nfisheries){
       modularity <- bipmod(affiliation.mat)$MODULARITY
 
       strength <- bipartite::strength(t(web))
-      closeness <- igraph::closeness(gy)[1:length(strength)]
+
+
+
       size <- df_choice %>%
         filter(FISHERY_ID %in% names(V(gy))) %>%
         group_by(FISHERY_ID) %>%
@@ -401,6 +413,16 @@ graph_bip_fcn <- function(df_choice, yi, nfisheries){
 
       nc <- networkcentralization_bipartite(strength, eb, nfisheries, nvessels)
       DF <- fragmentation_bipartite(affiliation.mat)
+
+
+      bipw <- bip %>%
+        mutate(weight = 1/weight) %>%
+        filter(FISHERY_ID %in% eb$lower,
+               Vessel_ID %in% eb$higher)
+      gc <- graph_from_data_frame(bipw,
+                                  directed = F)
+      closeness <- igraph::closeness(gc)[1:length(strength)]
+
 
       bars <- tibble(Year = yi,
                      Componenet = c,

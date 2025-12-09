@@ -356,10 +356,10 @@ choices_asc_meta <- function(start, subgraph_use, year_ref, nyears, vessels_in, 
       mutate(Year = yi)
 
     cache_dfchoice[[yi]] <- df_choice_fcn(yc$choice, yc$revenue, cost_multiplier, v_set)
-    write_rds(list(cache_dfchoice = cache_dfchoice,
-                   yi = yi,
-                   fisherylist_use = fisherylist_use,
-                   drop = drop), "/home/gkoss/westcoast-networks/data/choicetempcache.rds")
+    # write_rds(list(cache_dfchoice = cache_dfchoice,
+    #                yi = yi,
+    #                fisherylist_use = fisherylist_use,
+    #                drop = drop), "/home/gkoss/westcoast-networks/data/choicetempcache.rds")
 
     largestcc <- T
     if(yi == burnin & nyears > 5){

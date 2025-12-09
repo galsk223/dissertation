@@ -95,16 +95,17 @@ jall <- c("scalar", "sc",
           "kk1", "kk2",
           "knk1", "knk2",
           "nknk1", "nknk2", "smaller",
-          "fc12")
+          "fc12", "node", "node_sc", "node_fc",
+          "node_fc1","node_fc2","node_fc12")
 addl <- 0
 # addl 2 for 1-5 x 300
 # fix closeness?
 # addl 3 for 0-1 in key fisheries
 
-j <- 16
+j <- 20
 s <- 1
 
-for(j in c(1,3,4,5)){
+for(j in 20:22){
 
   log_file <- file.path(log_dir, sprintf("worker_%02d.log", j))
   if (file.exists(log_file)) file.remove(log_file)
@@ -114,7 +115,7 @@ for(j in c(1,3,4,5)){
   plan(sequential)
   plan(multisession, workers = 32)
   # ifelse(j == 1, n <- 25, n <- 50)
-  cache_simulation_par <- furrr::future_map(1:500,function(s){
+  cache_simulation_par <- furrr::future_map(1:250,function(s){
 
     # cache_iter <- list()
     # for(s in setwrite[1:3]){
@@ -128,7 +129,7 @@ for(j in c(1,3,4,5)){
     rscalef <- 1
     asc_fc <- asc_fc_start
 
-    if(jall[[j]] %in% c("scalar","smaller")){
+    if(jall[[j]] %in% c("scalar","node")){
       rscalef <- runif(1,0,5)
       asc_fc <- asc_fc_start*rscalef
       rscales <- runif(1,0,5)
@@ -143,12 +144,12 @@ for(j in c(1,3,4,5)){
       asc_sc <- asc_sc_start*rscales
     }
 
-    if(jall[[j]] == "sc"){
-      rscales <- runif(1,0,1)
+    if(jall[[j]] %in% c("sc","node_sc")){
+      rscales <- runif(1,0,5)
       asc_sc <- asc_sc_start*rscales
     }
-    if(jall[[j]] == "fc"){
-      rscalef <- runif(1,0,1)
+    if(jall[[j]] %in% c("fc","node_fc")){
+      rscalef <- runif(1,0,5)
       asc_fc <- asc_fc_start*rscalef
     }
 
@@ -157,16 +158,16 @@ for(j in c(1,3,4,5)){
       asc_sc <- asc_sc_start*rscales
     }
     if(str_detect(jall[[j]],"1")){
-      rscalef <- runif(1,0,1)
+      rscalef <- runif(1,0,5)
       asc_fc <- asc_fc_start
       asc_fc[as.numeric(fcindex$rowname)] <- asc_fc[as.numeric(fcindex$rowname)]*rscalef
     } else if(str_detect(jall[[j]],"2")) {
-      rscalef <- runif(1,0,1)
+      rscalef <- runif(1,0,5)
       asc_fc <- asc_fc_start
       asc_fc[-as.numeric(fcindex$rowname)] <- asc_fc[-as.numeric(fcindex$rowname)]*rscalef
     }
 
-    if(jall[[j]] == "fc12"){
+    if(str_detect(jall[[j]], "12")){
       rscalef1 <- runif(1,0,5)
       rscalef2 <- runif(1,0,5)
       rscalef <- paste("key:",round(rscalef1,2),
@@ -201,7 +202,8 @@ for(j in c(1,3,4,5)){
                                 skillrand, costbyfishery, shockpermanent,
                                 distparameter, closureresponse, entry_opt, dropves, ds)
 
-    msg <- sprintf("j = %d, s = %d : finished at %s", j, s, Sys.time())
+    msg <- sprintf("j = %d, s = %d : finished at %s. SF = %s, SS = %s",
+                   j, s, Sys.time(), round(rscalef,2), round(rscales, 2))
     write(msg, file = log_file, append = TRUE)
 
     sim_id <- tibble(

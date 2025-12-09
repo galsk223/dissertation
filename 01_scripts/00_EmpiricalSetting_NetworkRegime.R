@@ -234,7 +234,7 @@ ggplot(comp, aes(x = Year, y = N_Fisheries, color = Modularity, size = N_strateg
 
 regionyear <- expand_grid(Region = unique(comp$Region),
                           Year = 2004:2021)
-nyrs <- 4
+nyrs <- 3
 j <- 1
 trailing5 <- map_dfr(1:nrow(regionyear), function(j){
 
@@ -317,10 +317,10 @@ hist(compregime$DivMod)
 hist(compregime$StratMod)
 nyrs
 
-go <- ggplot(compregime, aes(x = StratWeight)) +
+go <- ggplot(compregime, aes(x = DivMod)) +
   geom_histogram(bins = 16, color = "grey80", fill = "grey70") +
   ggthemes::theme_tufte() +
-  labs(x = "Correlation between mean fisheries / vessel \n and mean weight",
+  labs(x = "Correlation between mean fisheries / vessel \n and modularity",
        y = "Count of multi-year sequences",
        title = "Observed Commercial Fishing",
        subtitle = "Multi-year Network Relationships")
@@ -330,10 +330,10 @@ gs + go + plot_layout(axes = "collect") &
   # plot_layout(ncol = 2, widths = c(1, 3)) &
   theme(
     strip.text = element_text(size = 6),
-    axis.title   = element_text(size = 8),
+    axis.title   = element_text(size = 10),
     plot.subtitle= element_text(size = 6),
-    axis.text    = element_text(size = 4),
-    plot.title   = element_text(size = 10),
+    axis.text    = element_text(size = 6),
+    plot.title   = element_text(size = 14),
     plot.caption = element_text(size = 6)
   )
 

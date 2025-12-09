@@ -222,6 +222,9 @@ plotss[[17]]+plotss[[18]]+plotss[[19]]+plotss[[20]]+
   theme(legend.position='bottom')
 
 
+plot(fc1$FishingCost, fc1$N_diversified4)
+plot(fc2$FishingCost, fc2$N_diversified4)
+
 
 # regressions -------------------------------------------------------------
 

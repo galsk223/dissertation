@@ -55,7 +55,7 @@ cloop <- unique(scstart$CostClass)
 # ctloop <- unique(scstart$ConClass)
 loop <- cloop
 c <- 1
-k <- 4
+k <- 3
 o <- 1
 allcomp <- map_dfr(1:length(loop), function(c){
 
@@ -120,10 +120,10 @@ compregime <- allcomp %>%
                                  "Med SC; Low FC", "Med SC; Med FC", "Med SC; High FC",
                                  "High SC; Low FC", "High SC; Med FC", "High SC; High FC")))
 
-gs <- ggplot(compregime, aes(x = DivWeight)) +
+gs <- ggplot(compregime, aes(x = DivMod)) +
   geom_histogram(bins = 16, color = "grey80", fill = "grey70") +
   ggthemes::theme_tufte() +
-  labs(x = "Correlation between mean fisheries / vessel \n and mean weight",
+  labs(x = "Correlation between mean fisheries / vessel \n and modularity",
        y = "Count of multi-year sequences",
        title = "Simulated Commercial Fishing",
        subtitle = "Multi-year Network Relationships")

@@ -275,36 +275,86 @@ for(p in 1:length(plotloop)){
     geom_node_point(aes(size = UniqueVessels, color = Cluster)) +
     # geom_node_text(aes(label = name), repel = TRUE, size = 3) +
     scale_size_continuous(limits = c(0,100),
-                          range = c(.5,10)) +
+                          range = c(.5,15)) +
     scale_edge_width(limits = c(0,50),
-                     range = c(.5,8)) +
+                     range = c(.5,10)) +
     scale_color_manual(values = color_list[1:max(membership(cw))], guide = "none") +
     theme_void() +
     guides(size = "none",
            edge_width = "none"
     ) +
     labs(
-      title = paste0("Mean Diversification: ",round(unique(info$MeanDiversification_All),2),
-                     "\n # Strategies: ",round(unique(info$N_strategies),2)),
-      # title = paste0("Fishing Costs ",round(unique(info$FishingCost),2)," | Switching Costs: ",round(unique(info$SwitchingCost),2)),
-      subtitle = paste0(unique(info$N_Fisheries)," fisheries & ", unique(info$N_Edges), " edges"),
+      # subtitle = paste0("Mean Diversification: ",round(unique(info$MeanDiversification_All),2),
+      #                "\n # Strategies: ",round(unique(info$N_strategies),2)),
+      subtitle = paste0("Mean Costs: ",round(mean(info$FishingCost, info$SwitchingCost),2)),
+      title = paste0("Modularity: ",round(unique(info$Modularity),2)))+
+      # caption = paste0(unique(info$N_Fisheries)," fisheries & ", unique(info$N_Edges), " edges",
+      #                  "\nConnectance = ",round(unique(info$N_Edges)/(unique(info$N_Fisheries)*(unique(info$N_Fisheries)-1)/2),2))) +
       # title = paste0("Modularity ",round(unique(info$Modularity),2)," | Density: ",round(unique(info$ClusteringCoefficient_Global),2)),
       # subtitle = paste0("Fishing Costs ",round(unique(info$FishingCost),2)," | Switching Costs: ",round(unique(info$SwitchingCost),2),
       #                   " \n(", unique(info$N_Fisheries)," fisheries & ", unique(info$N_Edges), " edges)"),
-      caption = paste0("\nMean Weight: ",round(unique(info$Mean_Weight),2)," | Modularity: ",round(unique(info$Modularity),2),
-                       "\nFishing Costs: ",round(unique(info$FishingCost),2)," | Switching Costs: ",round(unique(info$SwitchingCost),2))) +
+      # caption = paste0("\nConnectance: ", round(unique(info$N_Edges)/(unique(info$N_Fisheries)*(unique(info$N_Fisheries)-1)/2),2))) +
+      # caption = paste0("\nMean Weight: ",round(unique(info$Mean_Weight),2)," | Modularity: ",round(unique(info$Modularity),2),
+      #                  "\nFishing Costs: ",round(unique(info$FishingCost),2)," | Switching Costs: ",round(unique(info$SwitchingCost),2))) +
     theme(plot.margin = margin(5,5,5,5),
-          plot.title = element_text(size=11),
-          plot.subtitle = element_text(size=9, color="grey40"),
-          plot.caption = element_text(size = 9, hjust = 0, color="grey40"),
+          plot.title = element_text(size=18),
+          plot.subtitle = element_text(size=16, color="grey40"),
+          plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
           plot.background = element_rect(fill = "transparent", color = NA),
           panel.background = element_rect(fill = "transparent", color = NA))
 
 
 }
 
-(plots[[4]]+plots[[2]])/
-  (plots[[1]]+plots[[3]])
+pc <- plots[[1]]+plots[[2]]+plots[[3]] &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
 
+ggsave(plot = pc, paste0("~/westcoast-networks/output/Simulation/Static/1_costs.png"),
+       width = 18.5, height = 6.5,
+       bg = "transparent")
 
+pd <- (plots[[4]]+plots[[2]])/
+  (plots[[1]]+plots[[3]]) &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
 
+ggsave(plot = pd, paste0("~/westcoast-networks/output/Simulation/Static/1_div.png"),
+       width = 14, height = 15.75,
+       bg = "transparent")
+
+pd1 <- (plots[[4]]+plots[[2]])/
+  (plot_spacer()+plot_spacer()) &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+ggsave(plot = pd1, paste0("~/westcoast-networks/output/Simulation/Static/1_div1.png"),
+       width = 14, height = 15,
+       bg = "transparent")
+
+pd2 <- (plots[[4]]+plots[[2]])/
+  (plots[[1]]+plot_spacer()) &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+ggsave(plot = pd2, paste0("~/westcoast-networks/output/Simulation/Static/1_div2.png"),
+       width = 14, height = 15.75,
+       bg = "transparent")
+
+pm <- (plots[[1]]+plots[[3]]) &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+ggsave(plot = pm, paste0("~/westcoast-networks/output/Simulation/Static/1_mod.png"),
+       width = 15.25, height = 8,
+       bg = "transparent")

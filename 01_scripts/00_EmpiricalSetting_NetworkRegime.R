@@ -234,7 +234,7 @@ ggplot(comp, aes(x = Year, y = N_Fisheries, color = Modularity, size = N_strateg
 
 regionyear <- expand_grid(Region = unique(comp$Region),
                           Year = 2004:2021)
-nyrs <- 3
+nyrs <- 4
 j <- 1
 trailing5 <- map_dfr(1:nrow(regionyear), function(j){
 
@@ -318,24 +318,38 @@ hist(compregime$StratMod)
 nyrs
 
 go <- ggplot(compregime, aes(x = DivMod)) +
-  geom_histogram(bins = 16, color = "grey80", fill = "grey70") +
+  geom_histogram(bins = 15, color = "grey80", fill = "grey70") +
   ggthemes::theme_tufte() +
   labs(x = "Correlation between mean fisheries / vessel \n and modularity",
        y = "Count of multi-year sequences",
-       title = "Observed Commercial Fishing",
-       subtitle = "Multi-year Network Relationships")
+       subtitle = "Observed Commercial Fishing",
+       # subtitle = "Multi-year Network Relationships"
+       ) +
+  theme(plot.title = element_text(size=18),
+        plot.subtitle = element_text(size=16, color="grey40"),
+        plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA))
 go
 
-gs + go + plot_layout(axes = "collect") &
+pdm <- gs + go + plot_layout(axes = "collect") &
   # plot_layout(ncol = 2, widths = c(1, 3)) &
   theme(
     strip.text = element_text(size = 6),
-    axis.title   = element_text(size = 10),
-    plot.subtitle= element_text(size = 6),
-    axis.text    = element_text(size = 6),
+    axis.title   = element_text(size = 12),
+    plot.subtitle= element_text(size = 16),
+    axis.text    = element_text(size = 12),
     plot.title   = element_text(size = 14),
     plot.caption = element_text(size = 6)
+  ) &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
   )
+
+ggsave(plot = pdm, paste0("~/westcoast-networks/output/Simulation/Static/2_divmod.png"),
+       width = 12, height = 6,
+       bg = "transparent")
 
 hist(compregime$DivWeight)
 hist(compregime$StratWeight)
@@ -385,31 +399,46 @@ ggplot(compregime, aes(x = FisheryDirection, y = StrategiesDirection)) +
        vessel diversification and network outcomes specific to the regime state of growth (contraction)")
 
 p <- ggplot(compregime,
-            aes(x = MeanCon, y = DivWeight, color = Region)) +
+            aes(x = MeanFisheries, y = DivMod, color = Region)) +
   geom_hline(yintercept = 0, color = "grey80") +
   # geom_vline(xintercept = 0, color = "grey80") +
   geom_point(aes(alpha = StartYear, size = StartYear)) +
   geom_path(aes(size = StartYear, alpha = StartYear)) +
-  scale_size_continuous(range = c(.5, 1.5), guide = "none") +
+  scale_size_continuous(range = c(1, 3), guide = "none") +
   scale_alpha_continuous(range = c(.4, .75), guide = "none") +
   ggrepel::geom_text_repel(aes(label = YearLab),
-            size = 2, nudge_x = 0,nudge_y = 0.15,check_overlap = F) +
+            size = 4, nudge_x = 0,nudge_y = 0.15) +
   # ggthemes::theme_tufte() +
   theme_minimal() +
-  theme(panel.grid.minor = element_blank()) +
+  theme(panel.grid.minor = element_blank(),
+        plot.margin = margin(5,20,5,5),
+        plot.title = element_text(size=18),
+        plot.subtitle = element_text(size=12, color="grey40"),
+        axis.title = element_text(size=14, color="grey20"),
+        plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        strip.text = element_text(size = 14, color = "grey40")) +
   facet_wrap(vars(Region), scales = "free_x") +
   scale_color_manual(values = color_list[1:n_distinct(compregime$Region)],
                      guide = "none") +
   labs(
     x = "Mean fishery nodes",
-       y = "Correlation between mean fisheries / vessel \n and mean weight",
+       y = "Correlation between mean fisheries / vessel \n and modularity",
        color = "Region",
        title = "Observed Commercial Fishing by Region",
-       subtitle = "Multi-year Network Relationships",
-       caption = "For 4-year regional sequences (2002-2021), in which I compare the correlation between
-       vessel diversification and network outcomes specific to the regime state of growth (contraction).
-    Paths connect sequential multi-year regional sequences from older (smaller and lighter) to more recent (larger and darker)")
+       subtitle = "Multi-year Network Relationships"
+    #    caption = "For 4-year regional sequences (2002-2021), in which I compare the correlation between
+    #    vessel diversification and network outcomes specific to the regime state of growth (contraction).
+    # Paths connect sequential multi-year regional sequences from older (smaller and lighter) to more recent (larger and darker)"
+    )
 p
+
+ggsave(plot = p, paste0("~/westcoast-networks/output/Simulation/Static/2_regiondivmod.png"),
+       width = 13.5, height = 14,
+       bg = "transparent")
+
+
 
 ((go + gs +
      plot_layout(axes = "collect")) / p) +
@@ -426,7 +455,7 @@ p
 # ggMarginal(p, type = "boxplot", size = 75,
 #            fill="grey50", color = "grey90")
 
-p <- ggplot(compregime, aes(x = MeanFisheries, y = StratWeight, color = Region)) +
+p <- ggplot(compregime, aes(x = MeanFisheries, y = DivMod, color = Region)) +
   geom_hline(yintercept = 0, color = "grey80") +
   # geom_vline(xintercept = 0, color = "grey80") +
   # ggthemes::theme_tufte() +

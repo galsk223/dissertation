@@ -55,7 +55,7 @@ cloop <- unique(scstart$CostClass)
 # ctloop <- unique(scstart$ConClass)
 loop <- cloop
 c <- 1
-k <- 3
+k <- 4
 o <- 1
 allcomp <- map_dfr(1:length(loop), function(c){
 
@@ -120,13 +120,20 @@ compregime <- allcomp %>%
                                  "Med SC; Low FC", "Med SC; Med FC", "Med SC; High FC",
                                  "High SC; Low FC", "High SC; Med FC", "High SC; High FC")))
 
-gs <- ggplot(compregime, aes(x = DivMod)) +
-  geom_histogram(bins = 16, color = "grey80", fill = "grey70") +
+compregime_s <- compregime
+gs <- ggplot(compregime_s, aes(x = DivMod)) +
+  geom_histogram(bins = 15, color = "grey80", fill = "grey70") +
   ggthemes::theme_tufte() +
   labs(x = "Correlation between mean fisheries / vessel \n and modularity",
        y = "Count of multi-year sequences",
-       title = "Simulated Commercial Fishing",
-       subtitle = "Multi-year Network Relationships")
+       subtitle = "Simulated Commercial Fishing",
+       # subtitle = "Multi-year Network Relationships"
+       )  +
+  theme(plot.title = element_text(size=18),
+        plot.subtitle = element_text(size=16, color="grey40"),
+        plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA))
 gs
 
 hist(compregime$DivMod)
@@ -187,20 +194,20 @@ ggplot(compregime, aes(x = FisheryDirection, y = StrategiesDirection)) +
 
 #MeanFisheries, y =
 MeanFisheries <- compregime %>%
-  group_by
+  group_by %>%
   summarize(MeanFisheries = mean(MeanFisheries)) %>%
   pull()
 
 p <- ggplot(compregime %>%
               group_by(CostClass) %>%
-              mutate(MeanMeanFisheries = mean(MeanClust)), aes(x =DivWeight)) +
+              mutate(MeanMeanFisheries = mean(MeanClust)), aes(x =DivMod)) +
   # annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = Inf,
   #          fill = "#90EE90", alpha = 0.35) +
   # geom_hline(aes(yintercept = MeanMeanFisheries), color = "lightblue", size = 1) +
   # geom_hline(yintercept = 0, color = "grey80") +
   # geom_vline(xintercept = 0, color = "grey80") +
   # geom_point(aes(y = MeanClust), size = 3, alpha = .4) +
-  geom_histogram(bins = 16) +
+  geom_histogram(bins = 15, color = "grey80", fill = "grey70") +
   facet_wrap(vars(CostClass)) +
   # geom_text(aes(label = Set), size = 3) +
   ggthemes::theme_tufte() +
@@ -208,21 +215,28 @@ p <- ggplot(compregime %>%
                      guide = "none") +
   labs(
     y = "Count of multi-year sequences",
-       x = "Correlation between mean fisheries / vessel \n and mean edge weight",
+       x = "Correlation between mean fisheries / vessel \n and modularity",
        # color = "Region",
-    title = "Simulated Commercial Fishing",
+    title = "Simulated Commercial Fishing by Costs",
     subtitle = "Multi-year Network Relationships",
        caption = "") +
-  theme(
-    strip.text = element_text(size = 6),
-    axis.title   = element_text(size = 8),
-    plot.subtitle= element_text(size = 6),
-    axis.text    = element_text(size = 8),
-    plot.title   = element_text(size = 10),
-    plot.caption = element_text(size = 6)
-  )
+  theme(panel.grid.minor = element_blank(),
+        plot.margin = margin(10,10,10,10),
+        plot.title = element_text(size=18),
+        plot.subtitle = element_text(size=12, color="grey40"),
+        axis.title = element_text(size=14, color="grey20"),
+        plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        strip.text = element_text(size = 14, color = "grey40"))
 
 p
+ggsave(plot = p, paste0("~/westcoast-networks/output/Simulation/Static/2_costsdivmod.png"),
+       width = 10, height = 10,
+       bg = "transparent")
+
+
+
 f + c + cl +
   plot_layout(axis_titles = "collect") +
   plot_annotation(caption = "Each observation is a combination of 4 simulation iterations of a similar fishing cost and switching cost.

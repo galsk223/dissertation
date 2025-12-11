@@ -36,7 +36,7 @@ knk <- read_rds("~/westcoast-networks/data/clean/Simulation/static_knk_a1.rds")
 #   distinct(iter, .keep_all = T) %>%
 #   mutate(Connectance = N_Edges/(N_Fisheries*N_Fisheries-1)/2)
 
-df <- sm
+df <- fc2
 dffind <- df[[1]] %>%
   distinct(iter, .keep_all = T) %>%
   mutate(Connectance = N_Edges/(N_Fisheries*N_Fisheries-1)/2) %>%
@@ -62,7 +62,7 @@ scplotloop <- c(31,103,135)
 kkplotloop <- c(6,102,194)
 knkplotloop <- c(204, 198, 378)
 
-plotloop <- smplotloop
+plotloop <- fc2plotloop
 p <- 1
 plots <- list()
 for(p in 1:length(plotloop)){
@@ -173,31 +173,53 @@ for(p in 1:length(plotloop)){
       size = 3
     ) +
     scale_size_continuous(limits = c(0,250), #75
-                          range = c(.5,10)) +
+                          range = c(.5,15)) +
     scale_edge_width(limits = c(0,75),
-                     range = c(.5,8)) +
+                     range = c(.5,10)) +
     scale_color_manual(values = color_list[1:max(membership(cw))], guide = "none") +
     theme_void() +
     guides(size = "none",
            edge_width = "none"
     ) +
     labs(
-      # title = paste0("Fishing Costs: ",round(unique(info$FishingCost),2)),
-      title = paste0("Switching Costs: ",round(unique(info$SwitchingCost),2)),
-      subtitle = paste0(unique(info$N_Fisheries)," fisheries & ", unique(info$N_Edges), " edges"),
-      caption = paste0("\nMean Diversification: ",round(unique(info$MeanDiversification_All),2),
-                       "\n# Strategies: ",round(unique(info$N_strategies),2),
-                       "\nMean Weight: ",round(unique(info$Mean_Weight),2),
-                       "\nDensity: ",round(unique(info$ClusteringCoefficient_Global),2),
-                       "\nModularity: ",round(unique(info$Modularity),2),
-                       "\nFragmentation: ",round(unique(info$FragMeasure),2),
-                       "\nIter: ",unique(info$iter))) +
+      caption = paste0("Fishing Costs: ",round(unique(info$FishingCost),2)),
+      # title = paste0("Switching Costs: ",round(unique(info$SwitchingCost),2)),
+      # subtitle = paste0(unique(info$N_Fisheries)," fisheries & ", unique(info$N_Edges), " edges"),
+      subtitle = paste0("Mean Diversification: ",round(unique(info$MeanDiversification_All),2),
+                       "\n# Strategies: ",round(unique(info$N_strategies),2)),
+      # caption = paste0("\nMean Diversification: ",round(unique(info$MeanDiversification_All),2),
+      #                  "\n# Strategies: ",round(unique(info$N_strategies),2),
+      #                  "\nMean Weight: ",round(unique(info$Mean_Weight),2),
+      #                  "\nModularity: ",round(unique(info$Modularity),2))
+      title = paste0("Mean Weight: ",round(unique(info$Mean_Weight),2),
+                       " | Modularity: ",round(unique(info$Modularity),2))) +
     theme(plot.margin = margin(5,5,5,5),
-          plot.subtitle = element_text(size=12, color="grey40"),
-          plot.caption = element_text(size = 8, hjust = 0),
+          plot.title = element_text(size=18),
+          plot.subtitle = element_text(size=16, color="grey40"),
+          plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
           plot.background = element_rect(fill = "transparent", color = NA),
           panel.background = element_rect(fill = "transparent", color = NA))
 
 }
 
-plots[[1]] + plots[[2]] + plots[[3]]
+pnk <- plots[[1]] + plots[[3]] &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+pk <- plots[[1]] + plots[[3]] &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+pb <- pk/pnk &
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+ggsave(plot = pb, paste0("~/westcoast-networks/output/Simulation/Static/3_knkgrid.png"),
+       width = 14, height = 15.5,
+       bg = "transparent")

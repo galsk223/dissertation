@@ -117,7 +117,10 @@ allfc_n <- bind_rows(fc_n, fc1_n, fc2_n)
 out <- c("N_Fisheries", "N_Edges", "MeanDiversification_All", "MeanDiversification_Diverse", "N_strategies", "N_diversified2",
          "Mean_Weight", "Modularity", "ClusteringCoefficient_Global", "FragMeasure", "Connectance",
          "DistMean", "RevMean", "RevGini", "Rev10", "Rev90", "Size", "Strength","ClusteringCoefficient", "FragmentationCentrality")
-
+names <- c("N_Fisheries", "N_Edges", "Mean Diversification \n(All Vessels)", "Mean Diversification \n(Diversified Vessels)",
+           "# Strategies", "# Diversified Vessels",
+           "Mean_Weight", "Modularity", "ClusteringCoefficient_Global", "FragMeasure", "Connectance",
+           "DistMean", "RevMean", "RevGini", "Rev10", "Rev90", "Size", "Strength","ClusteringCoefficient", "FragmentationCentrality")
 color_list <- c("#4c6085","#39a0ed","#f7b32b","#EC0868","#13c4a3","#C09BD8","#52050A",
                 "#fe5f55","#161613","#A44A3F")
 
@@ -143,11 +146,20 @@ for(i in 1:length(out)){
                 # formula = y ~ poly(x, 2),
                 se = T, size = 1)  +
       scale_color_manual(values = c(color_list[1],color_list[2],color_list[4])) +
-      theme_minimal() +
+      ggthemes::theme_tufte() +
       labs(
         y = "",
-        subtitle = paste0(out[[i]]),
-        color = "Increasing fishing costs\nfor fisheries:")
+        x = "Fishing Costs",
+        subtitle = paste0(names[[i]]),
+        color = "Increasing fishing costs\nfor fisheries:") +
+    theme(plot.margin = margin(5,5,5,5),
+          legend.text  = element_text(size = 16),
+          legend.title = element_text(size = 16),
+          plot.title = element_text(size=18),
+          plot.subtitle = element_text(size=16, color="grey40"),
+          plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+          plot.background = element_rect(fill = "transparent", color = NA),
+          panel.background = element_rect(fill = "transparent", color = NA))
 
   plotss[[i]] <- ggplot(dfsc, aes(x = SwitchingCost, y = !!yvar, color = SwitchCostInc)) +
     geom_vline(xintercept = 1, color = "grey60") +
@@ -158,21 +170,39 @@ for(i in 1:length(out)){
     theme_minimal() +
     labs(
       y = "",
-      subtitle = paste0(out[[i]]),
-      color = "Increasing switching costs\nbetween fisheries:")
+      subtitle = paste0(names[[i]]),
+      color = "Increasing switching costs\nbetween fisheries:") +
+    theme(plot.margin = margin(5,5,5,5),
+          plot.title = element_text(size=18),
+          legend.text  = element_text(size = 16),
+          legend.title = element_text(size = 16),
+          plot.subtitle = element_text(size=16, color="grey40"),
+          plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+          plot.background = element_rect(fill = "transparent", color = NA),
+          panel.background = element_rect(fill = "transparent", color = NA))
 
 }
+
+# plotsf[[5]]+plotsf[[6]]+plotsf[[3]]+
+pcd <- plotsf[[4]]+
+  plot_layout(guides="collect", axis_titles ="collect", axes = "collect") &
+  # plot_annotation(title = "Fleet Diversification")  &
+  theme(legend.position='bottom') &
+  theme(
+    plot.title = element_text(size=18),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+ggsave(plot = pcd, paste0("~/westcoast-networks/output/Simulation/Static/3_centraldiverse.png"),
+       width = 8, height = 7,
+       bg = "transparent")
+
 
 plotsf[[1]]+plotsf[[2]]+plotsf[[11]]+guide_area()+
   plot_layout(guides="collect", axis_titles ="collect", axes = "collect")+
   plot_annotation(title = "Network Structure",
                   subtitle = "Fishing Cost Changes")
-
-plotsf[[3]]+plotsf[[4]]+plotsf[[5]]+plotsf[[6]]+
-  plot_layout(guides="collect", axis_titles ="collect", axes = "collect")+
-  plot_annotation(title = "Diversification",
-                  subtitle = "Fishing Cost Changes")  &
-  theme(legend.position='bottom')
 
 plotsf[[7]]+plotsf[[8]]+plotsf[[9]]+plotsf[[10]]+
   plot_layout(guides="collect", axis_titles ="collect", axes = "collect")+

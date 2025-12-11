@@ -89,7 +89,7 @@ for(i in 1:length(out)){
   plots[[i]] <- ggplot(scall
                        # %>%filter(N_Fisheries <= 15)
            , aes(x = SwitchingCost, y = !!sym(out[[i]]), color = N_Fisheries)) +
-    geom_vline(xintercept = 1, color = "grey60") +
+    # geom_vline(xintercept = 1, color = "grey60") +
     geom_point(size = 3) +
     scale_color_gradient(
       low = "#EDD174",   # color for smallest estimate E8E387
@@ -103,11 +103,18 @@ for(i in 1:length(out)){
     # annotate("text", x = Inf, y = Inf, hjust = 1.1, vjust = 6, label = label_diff, color = "grey40") +
     # annotate("text", x = Inf, y = Inf, label = label_text, hjust = 1.1, vjust = 2, size = 5) +
     # scale_color_manual(values = c(color_list[3],color_list[5])) +
-    theme_minimal() +
+    ggthemes::theme_tufte() +
+    theme(plot.title = element_text(size=18),
+          plot.subtitle = element_text(size=16, color="grey40"),
+          plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+          plot.background = element_rect(fill = "transparent", color = NA),
+          panel.background = element_rect(fill = "transparent", color = NA),
+          legend.position='bottom') +
     # guides(color = "none") +
     labs(
       subtitle = paste0(names[[i]]),
-      y = paste0(names[[i]]),
+      y = "",
+      x = "Switching Costs",
          color = "Network Size \n(fishery nodes)")
 
   if(i <= 6){
@@ -128,7 +135,7 @@ for(i in 1:length(out)){
     plots[[i]] <- ggplot(scall
                          # %>%filter(N_Fisheries <= 15)
                          , aes(x = SwitchingCost, y = !!sym(out[[i]]))) +
-      geom_vline(xintercept = 1, color = "grey60") +
+      # geom_vline(xintercept = 1, color = "grey60") +
       geom_point() +
       # geom_smooth(method = "lm",
       #             formula = y ~ poly(x, 3),
@@ -140,10 +147,17 @@ for(i in 1:length(out)){
       # annotate("text", x = Inf, y = Inf, label = label_text, hjust = 1.1, vjust = 2, size = 5) +
       # scale_color_manual(values = c(color_list[3],color_list[5])) +
       theme_minimal() +
+      theme(plot.margin = margin(5,5,5,5),
+            plot.title = element_text(size=18),
+            plot.subtitle = element_text(size=16, color="grey40"),
+            plot.caption = element_text(size = 10, hjust = 0, color="grey40"),
+            plot.background = element_rect(fill = "transparent", color = NA),
+            panel.background = element_rect(fill = "transparent", color = NA)) +
       # guides(color = "none") +
       labs(
         subtitle = paste0(names[[i]]),
-        y = paste0(names[[i]]))
+        # y = paste0(names[[i]])
+        )
 
   }
 
@@ -159,6 +173,10 @@ plots[[7]]+plots[[8]]+plots[[9]]+plots[[10]]+
   plot_layout(guides="collect", axis_titles ="collect", axes = "collect")+
   plot_annotation(title = "Network Outcomes") &
   theme(legend.position='bottom')
+
+ggsave(plot = plots[[8]], paste0("~/westcoast-networks/output/Simulation/Static/1_connectance_mod.png"),
+       width = 8, height = 6,
+       bg = "transparent")
 
 plots[[1]]+plots[[2]]+plots[[11]]+guide_area()+
   plot_layout(guides="collect", axis_titles ="collect", axes = "collect")+
